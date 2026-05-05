@@ -1,5 +1,12 @@
 # mnemos
 
+[![CI](https://github.com/Reflective-Lab/mnemos/actions/workflows/ci.yml/badge.svg)](https://github.com/Reflective-Lab/mnemos/actions/workflows/ci.yml)
+[![Security](https://github.com/Reflective-Lab/mnemos/actions/workflows/security.yml/badge.svg)](https://github.com/Reflective-Lab/mnemos/actions/workflows/security.yml)
+[![dependency status](https://deps.rs/repo/github/Reflective-Lab/mnemos/status.svg)](https://deps.rs/repo/github/Reflective-Lab/mnemos)
+![MSRV](https://img.shields.io/badge/MSRV-1.94.0-blue)
+<img alt="gitleaks badge" src="https://img.shields.io/badge/protected%20by-gitleaks-blue">
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Knowledge, recall, retrieval, and memory for Converge formations.
 
 `mnemos` is a Converge extension. It implements knowledge-base storage,
