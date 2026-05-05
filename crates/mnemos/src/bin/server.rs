@@ -50,10 +50,7 @@ async fn main() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    info!(
-        "Starting mnemos Server v{}",
-        env!("CARGO_PKG_VERSION")
-    );
+    info!("Starting mnemos Server v{}", env!("CARGO_PKG_VERSION"));
 
     // Create knowledge base configuration
     let config = KnowledgeBaseConfig {
