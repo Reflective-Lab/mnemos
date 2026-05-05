@@ -1,0 +1,213 @@
+syntax = "proto3";
+
+package mnemos.v1;
+
+// Knowledge Base Service
+// A self-learning knowledgebase with vector search capabilities
+service KnowledgeService {
+  // Add a new knowledge entry
+  rpc AddEntry(AddEntryRequest) returns (AddEntryResponse);
+
+  // Add multiple entries in batch
+  rpc AddEntries(AddEntriesRequest) returns (AddEntriesResponse);
+
+  // Get an entry by ID
+  rpc GetEntry(GetEntryRequest) returns (GetEntryResponse);
+
+  // Update an existing entry
+  rpc UpdateEntry(UpdateEntryRequest) returns (UpdateEntryResponse);
+
+  // Delete an entry
+  rpc DeleteEntry(DeleteEntryRequest) returns (DeleteEntryResponse);
+
+  // Search for similar entries
+  rpc Search(SearchRequest) returns (SearchResponse);
+
+  // Stream search results
+  rpc SearchStream(SearchRequest) returns (stream SearchResult);
+
+  // Record user feedback on a result
+  rpc RecordFeedback(FeedbackRequest) returns (FeedbackResponse);
+
+  // Get related entries
+  rpc GetRelated(GetRelatedRequest) returns (GetRelatedResponse);
+
+  // Link two entries as related
+  rpc LinkEntries(LinkEntriesRequest) returns (LinkEntriesResponse);
+
+  // Get knowledge base statistics
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+
+  // Health check
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// A knowledge entry
+message KnowledgeEntry {
+  string id = 1;
+  string title = 2;
+  string content = 3;
+  optional string category = 4;
+  repeated string tags = 5;
+  optional string source = 6;
+  map<string, string> metadata = 7;
+  string created_at = 8;
+  string updated_at = 9;
+  uint64 access_count = 10;
+  float learned_relevance = 11;
+  repeated string related_entries = 12;
+}
+
+// Add entry request
+message AddEntryRequest {
+  string title = 1;
+  string content = 2;
+  optional string category = 3;
+  repeated string tags = 4;
+  optional string source = 5;
+  map<string, string> metadata = 6;
+}
+
+message AddEntryResponse {
+  string id = 1;
+  bool success = 2;
+  optional string error = 3;
+}
+
+// Batch add entries
+message AddEntriesRequest {
+  repeated AddEntryRequest entries = 1;
+}
+
+message AddEntriesResponse {
+  repeated string ids = 1;
+  bool success = 2;
+  optional string error = 3;
+}
+
+// Get entry
+message GetEntryRequest {
+  string id = 1;
+}
+
+message GetEntryResponse {
+  optional KnowledgeEntry entry = 1;
+  bool found = 2;
+}
+
+// Update entry
+message UpdateEntryRequest {
+  string id = 1;
+  optional string title = 2;
+  optional string content = 3;
+  optional string category = 4;
+  repeated string tags = 5;
+  optional string source = 6;
+  map<string, string> metadata = 7;
+}
+
+message UpdateEntryResponse {
+  bool success = 1;
+  optional string error = 2;
+}
+
+// Delete entry
+message DeleteEntryRequest {
+  string id = 1;
+}
+
+message DeleteEntryResponse {
+  bool success = 1;
+  optional string error = 2;
+}
+
+// Search request
+message SearchRequest {
+  string query = 1;
+  uint32 limit = 2;
+  float min_similarity = 3;
+  optional string category = 4;
+  repeated string tags = 5;
+  bool use_learning = 6;
+  bool include_related = 7;
+  float diversity = 8;
+  bool hybrid = 9;
+  float keyword_weight = 10;
+}
+
+// Search result
+message SearchResult {
+  KnowledgeEntry entry = 1;
+  float similarity = 2;
+  float relevance_boost = 3;
+  float score = 4;
+  float distance = 5;
+}
+
+message SearchResponse {
+  repeated SearchResult results = 1;
+  uint32 total_results = 2;
+  float search_time_ms = 3;
+}
+
+// Feedback
+message FeedbackRequest {
+  string entry_id = 1;
+  bool positive = 2;
+  optional string query_context = 3;
+}
+
+message FeedbackResponse {
+  bool success = 1;
+}
+
+// Related entries
+message GetRelatedRequest {
+  string id = 1;
+  uint32 limit = 2;
+}
+
+message GetRelatedResponse {
+  repeated KnowledgeEntry entries = 1;
+}
+
+// Link entries
+message LinkEntriesRequest {
+  string id1 = 1;
+  string id2 = 2;
+}
+
+message LinkEntriesResponse {
+  bool success = 1;
+  optional string error = 2;
+}
+
+// Statistics
+message GetStatsRequest {}
+
+message GetStatsResponse {
+  uint64 total_entries = 1;
+  uint64 unique_categories = 2;
+  uint64 unique_tags = 3;
+  uint64 total_access_count = 4;
+  uint32 dimensions = 5;
+  bool learning_enabled = 6;
+  LearningStats learning_stats = 7;
+}
+
+message LearningStats {
+  uint64 query_count = 1;
+  uint64 replay_buffer_size = 2;
+  uint64 learned_entries = 3;
+  float avg_relevance_weight = 4;
+  float weight_variance = 5;
+}
+
+// Health check
+message HealthRequest {}
+
+message HealthResponse {
+  bool healthy = 1;
+  string version = 2;
+  uint64 uptime_seconds = 3;
+}
