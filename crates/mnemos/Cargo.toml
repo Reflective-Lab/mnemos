@@ -6,7 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Self-learning knowledgebase with vector search, gRPC, and MCP interfaces. Implements Converge recall and storage suggestors."
-keywords = ["vector-database", "knowledge-base", "machine-learning", "embeddings", "grpc", "converge"]
+keywords = ["vector-database", "knowledge-base", "embeddings", "grpc", "converge"]
 categories = ["database", "science"]
 exclude = ["target/*", "target/"]
 
