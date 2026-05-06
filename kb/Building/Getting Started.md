@@ -6,7 +6,7 @@ source: mixed
 
 ```bash
 git clone https://github.com/Reflective-Lab/mnemos-knowledge.git
-cd mnemos
+cd mnemos-knowledge
 just                # check + lint + test
 ```
 
