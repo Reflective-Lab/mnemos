@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Cargo package renamed from `mnemos` to `converge-mnemos-knowledge`; Rust
+  library and binary names remain `mnemos` and `mnemos-server`.
+
 ## [1.0.0] - 2026-05-05
 
 ### Added

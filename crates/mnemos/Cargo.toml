@@ -1,5 +1,5 @@
 [package]
-name = "mnemos"
+name = "converge-mnemos-knowledge"
 version.workspace = true
 publish = false
 edition.workspace = true
@@ -10,6 +10,10 @@ description = "Self-learning knowledgebase with vector search, gRPC, and MCP int
 keywords = ["vector-database", "knowledge-base", "machine-learning", "embeddings", "grpc", "converge"]
 categories = ["database", "science"]
 exclude = ["target/*", "target/"]
+
+[lib]
+name = "mnemos"
+path = "src/lib.rs"
 
 [dependencies]
 # Converge contract

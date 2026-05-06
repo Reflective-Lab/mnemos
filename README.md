@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/Reflective-Lab/mnemos-knowledge/actions/workflows/ci.yml/badge.svg)](https://github.com/Reflective-Lab/mnemos-knowledge/actions/workflows/ci.yml)
 [![Security](https://github.com/Reflective-Lab/mnemos-knowledge/actions/workflows/security.yml/badge.svg)](https://github.com/Reflective-Lab/mnemos-knowledge/actions/workflows/security.yml)
+[![Crates.io](https://img.shields.io/crates/v/converge-mnemos-knowledge.svg)](https://crates.io/crates/converge-mnemos-knowledge)
+[![docs.rs](https://docs.rs/converge-mnemos-knowledge/badge.svg)](https://docs.rs/converge-mnemos-knowledge)
 [![dependency status](https://deps.rs/repo/github/Reflective-Lab/mnemos-knowledge/status.svg)](https://deps.rs/repo/github/Reflective-Lab/mnemos-knowledge)
 ![MSRV](https://img.shields.io/badge/MSRV-1.94.0-blue)
 <img alt="gitleaks badge" src="https://img.shields.io/badge/protected%20by-gitleaks-blue">
@@ -12,6 +14,9 @@ Knowledge, recall, retrieval, and memory for Converge formations.
 `mnemos` is a Converge extension. It implements knowledge-base storage,
 retrieval, ingestion, embeddings, feedback learning, and Converge suggestors
 without putting those mechanisms inside the Converge foundation.
+
+Cargo package: `converge-mnemos-knowledge`. Rust library and binary names
+remain `mnemos` and `mnemos-server`.
 
 ## Why It Exists
 
