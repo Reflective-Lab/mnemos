@@ -85,8 +85,7 @@ just lint
 just doc
 ```
 
-While `converge-pack` is unreleased, this workspace patches it to the local
-checkout at `../../work/converge/crates/pack`.
+Converge platform dependencies resolve from crates.io.
 
 ## Project Files
 

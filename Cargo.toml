@@ -11,7 +11,7 @@ repository = "https://github.com/Reflective-Lab/mnemos"
 
 [workspace.dependencies]
 # Converge platform contract
-converge-pack = "3.7.6"
+converge-pack = "3.8.1"
 
 # Async runtime
 tokio = { version = "1.48", features = ["full", "macros", "sync"] }
@@ -91,8 +91,3 @@ wildcard_imports = "allow"
 opt-level = 3
 lto = true
 codegen-units = 1
-
-# Track unreleased Converge platform head until each crate ships to crates.io.
-# Remove this block once converge-pack is published at the floor version.
-[patch.crates-io]
-converge-pack = { path = "../../work/converge/crates/pack" }

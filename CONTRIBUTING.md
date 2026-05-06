@@ -10,13 +10,7 @@ cargo test --workspace
 cargo clippy --workspace -- -D warnings
 ```
 
-While `converge-pack` is unreleased, the workspace patches it to the local Converge checkout via `[patch.crates-io]`. You need both repos checked out side by side:
-
-```
-~/dev/
-├── work/converge/
-└── extensions/mnemos/
-```
+This workspace depends on published Converge crates from crates.io.
 
 ## Boundaries
 
