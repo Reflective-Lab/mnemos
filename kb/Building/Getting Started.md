@@ -5,7 +5,7 @@ source: mixed
 # Getting Started
 
 ```bash
-git clone https://github.com/Reflective-Lab/mnemos.git
+git clone https://github.com/Reflective-Lab/mnemos-knowledge.git
 cd mnemos
 just                # check + lint + test
 ```

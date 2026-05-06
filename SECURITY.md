@@ -10,7 +10,7 @@
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Report vulnerabilities through [GitHub Security Advisories](https://github.com/Reflective-Lab/mnemos/security/advisories/new) or by emailing **Kenneth Pernyer** at [kenneth@reflective.se](mailto:kenneth@reflective.se).
+Report vulnerabilities through [GitHub Security Advisories](https://github.com/Reflective-Lab/mnemos-knowledge/security/advisories/new) or by emailing **Kenneth Pernyer** at [kenneth@reflective.se](mailto:kenneth@reflective.se).
 
 You should receive a response within 48 hours. If you do not, please follow up via email.
 
