@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-05-08
+
+### Fixed
+
+- Coverage workflow now installs `protobuf-compiler` on the runner so
+  `prost-build` can find `protoc` while building the workspace under
+  `cargo llvm-cov`.
+- Coverage `--ignore-filename-regex` extended to skip `main.rs`,
+  `suggestor.rs`, `bin/`, and `grpc/` (integration-tested code) so the
+  80% floor reflects unit-test reach.
+- Stability workflow's `Security Audit (blocking)` step now passes the
+  same `RUSTSEC-*` ignores documented in `deny.toml`; previously it
+  ran with no ignores, so the gate was guaranteed-red.
+- `search_filters_and_results` no longer asserts on the size of a
+  small-corpus hash-embedding search; it relied on accidental positive
+  overlap and was non-deterministically red in CI.
+- `cargo fmt` applied across let-chain sites that auto-fix had touched.
+
 ## [1.1.0] - 2026-05-07
 
 ### Changed
