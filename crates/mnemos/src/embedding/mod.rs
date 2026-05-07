@@ -78,9 +78,11 @@ impl EmbeddingEngine {
     ///
     /// Reads OPENAI_API_KEY. Falls back to hash embeddings if not set.
     pub fn from_env() -> Self {
-        if let Ok(provider) = OpenAIEmbedding::from_env() { Self {
-            provider: Box::new(provider),
-        } } else {
+        if let Ok(provider) = OpenAIEmbedding::from_env() {
+            Self {
+                provider: Box::new(provider),
+            }
+        } else {
             tracing::warn!("OPENAI_API_KEY not set, falling back to hash embeddings");
             Self::new(1536) // Match OpenAI default dimensions
         }

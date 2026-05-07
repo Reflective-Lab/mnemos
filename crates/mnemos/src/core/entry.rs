@@ -202,6 +202,8 @@ mod tests {
         entry.record_access(1.5);
 
         assert_eq!(entry.access_count, 1);
-        assert!((entry.learned_relevance - f32::midpoint(initial_relevance, 1.5)).abs() < f32::EPSILON);
+        assert!(
+            (entry.learned_relevance - f32::midpoint(initial_relevance, 1.5)).abs() < f32::EPSILON
+        );
     }
 }

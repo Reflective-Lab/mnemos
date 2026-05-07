@@ -266,12 +266,17 @@ impl TemporalMemory {
 
     /// Get prediction for a pattern.
     pub fn predict(&self, pattern_name: &str) -> Option<f32> {
-        self.crystals.get(pattern_name).map(TimeCrystal::predict_now)
+        self.crystals
+            .get(pattern_name)
+            .map(TimeCrystal::predict_now)
     }
 
     /// List all patterns.
     pub fn list_patterns(&self) -> Vec<&str> {
-        self.crystals.keys().map(std::string::String::as_str).collect()
+        self.crystals
+            .keys()
+            .map(std::string::String::as_str)
+            .collect()
     }
 
     /// Get a crystal by name.

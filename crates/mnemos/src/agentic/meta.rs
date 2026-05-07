@@ -90,12 +90,13 @@ impl MetaLearner {
 
         // If we have a task embedding, adjust based on similar tasks
         if let Some(emb) = task_embedding
-            && let Some((_, similar_params)) = self.find_similar_task(emb) {
-                // Blend meta-params with similar task's successful params
-                for i in 0..params.len().min(similar_params.len()) {
-                    params[i] = 0.7 * params[i] + 0.3 * similar_params[i];
-                }
+            && let Some((_, similar_params)) = self.find_similar_task(emb)
+        {
+            // Blend meta-params with similar task's successful params
+            for i in 0..params.len().min(similar_params.len()) {
+                params[i] = 0.7 * params[i] + 0.3 * similar_params[i];
             }
+        }
 
         params
     }

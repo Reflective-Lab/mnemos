@@ -217,9 +217,10 @@ impl Filter {
 
         // Check access count
         if let Some(min) = self.min_access_count
-            && entry.access_count < min {
-                return false;
-            }
+            && entry.access_count < min
+        {
+            return false;
+        }
 
         // Check metadata
         for (key, value) in &self.metadata {

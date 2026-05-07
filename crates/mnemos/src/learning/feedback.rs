@@ -333,17 +333,18 @@ impl FeedbackCollector {
             if let Some(session) = sessions.get_mut(&session_id) {
                 // Check if this is a follow-up query
                 if let Some(prev_query) = &session.current_query
-                    && !prev_query.viewed.is_empty() {
-                        self.emit_signal(FeedbackSignal::new(
-                            session_id,
-                            Some(query_id),
-                            SignalType::FollowUp {
-                                previous_query: prev_query.id,
-                                viewed_entries: prev_query.viewed.clone(),
-                            },
-                        ))
-                        .await;
-                    }
+                    && !prev_query.viewed.is_empty()
+                {
+                    self.emit_signal(FeedbackSignal::new(
+                        session_id,
+                        Some(query_id),
+                        SignalType::FollowUp {
+                            previous_query: prev_query.id,
+                            viewed_entries: prev_query.viewed.clone(),
+                        },
+                    ))
+                    .await;
+                }
 
                 // Set new query context
                 session.current_query = Some(QueryContext {
@@ -615,9 +616,10 @@ impl FeedbackProcessor {
                 result_ids: _,
                 text: _,
             } = &signal.signal
-                && let Some(query_id) = signal.query_id {
-                    query_embeddings.insert(query_id, embedding.clone());
-                }
+                && let Some(query_id) = signal.query_id
+            {
+                query_embeddings.insert(query_id, embedding.clone());
+            }
         }
 
         // Second pass: process interaction signals

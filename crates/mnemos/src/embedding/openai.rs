@@ -229,9 +229,9 @@ impl EmbeddingCache {
                 .iter()
                 .min_by_key(|(_, v)| v.created_at)
                 .map(|(k, _)| k.clone())
-            {
-                self.entries.remove(&oldest_key);
-            }
+        {
+            self.entries.remove(&oldest_key);
+        }
 
         self.entries.insert(
             key,
@@ -264,9 +264,10 @@ impl OpenAIEmbedding {
     pub fn new(api_key: impl Into<String>, model: Option<String>) -> Self {
         let mut config = OpenAIConfig::default();
         if let Some(model_str) = model
-            && let Some(model) = OpenAIModel::parse(&model_str) {
-                config.model = model;
-            }
+            && let Some(model) = OpenAIModel::parse(&model_str)
+        {
+            config.model = model;
+        }
         Self::with_config(api_key, config)
     }
 
@@ -442,7 +443,10 @@ impl OpenAIEmbedding {
 
             let request = EmbeddingRequest {
                 model: self.config.model.as_str().to_string(),
-                input: uncached_texts.iter().map(std::string::ToString::to_string).collect(),
+                input: uncached_texts
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect(),
                 dimensions: if self.config.model.supports_custom_dimensions() {
                     Some(self.effective_dimensions)
                 } else {
