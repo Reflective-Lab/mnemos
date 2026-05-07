@@ -55,7 +55,7 @@ impl KnowledgeServiceImpl {
             related_entries: entry
                 .related_entries
                 .iter()
-                .map(|id| id.to_string())
+                .map(std::string::ToString::to_string)
                 .collect(),
         }
     }
@@ -118,7 +118,7 @@ impl KnowledgeService for KnowledgeServiceImpl {
         let kb = self.kb.read().await;
         match kb.add_entries(entries).await {
             Ok(ids) => Ok(Response::new(AddEntriesResponse {
-                ids: ids.iter().map(|id| id.to_string()).collect(),
+                ids: ids.iter().map(std::string::ToString::to_string).collect(),
                 success: true,
                 error: None,
             })),
@@ -162,14 +162,11 @@ impl KnowledgeService for KnowledgeServiceImpl {
         let kb = self.kb.read().await;
 
         // Get existing entry
-        let mut entry = match kb.get(id) {
-            Some(e) => e,
-            None => {
-                return Ok(Response::new(UpdateEntryResponse {
-                    success: false,
-                    error: Some("Entry not found".to_string()),
-                }));
-            }
+        let Some(mut entry) = kb.get(id) else {
+            return Ok(Response::new(UpdateEntryResponse {
+                success: false,
+                error: Some("Entry not found".to_string()),
+            }));
         };
 
         // Update fields
@@ -193,7 +190,7 @@ impl KnowledgeService for KnowledgeServiceImpl {
         }
 
         match kb.update_entry(entry).await {
-            Ok(_) => Ok(Response::new(UpdateEntryResponse {
+            Ok(()) => Ok(Response::new(UpdateEntryResponse {
                 success: true,
                 error: None,
             })),
@@ -214,7 +211,7 @@ impl KnowledgeService for KnowledgeServiceImpl {
 
         let kb = self.kb.read().await;
         match kb.delete_entry(id).await {
-            Ok(_) => Ok(Response::new(DeleteEntryResponse {
+            Ok(()) => Ok(Response::new(DeleteEntryResponse {
                 success: true,
                 error: None,
             })),
@@ -324,7 +321,7 @@ impl KnowledgeService for KnowledgeServiceImpl {
 
         let kb = self.kb.read().await;
         match kb.record_feedback(id, req.positive).await {
-            Ok(_) => Ok(Response::new(FeedbackResponse { success: true })),
+            Ok(()) => Ok(Response::new(FeedbackResponse { success: true })),
             Err(_) => Ok(Response::new(FeedbackResponse { success: false })),
         }
     }
@@ -357,7 +354,7 @@ impl KnowledgeService for KnowledgeServiceImpl {
 
         let kb = self.kb.read().await;
         match kb.link_entries(id1, id2).await {
-            Ok(_) => Ok(Response::new(LinkEntriesResponse {
+            Ok(()) => Ok(Response::new(LinkEntriesResponse {
                 success: true,
                 error: None,
             })),

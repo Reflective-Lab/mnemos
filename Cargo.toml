@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/mnemos"]
 
 [workspace.package]
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 rust-version = "1.94.0"
 license = "MIT"
@@ -81,6 +81,7 @@ cast_sign_loss = "allow"
 cast_lossless = "allow"
 cast_precision_loss = "allow"
 must_use_candidate = "allow"
+return_self_not_must_use = "allow"
 doc_markdown = "allow"
 uninlined_format_args = "allow"
 needless_pass_by_value = "allow"

@@ -59,9 +59,13 @@ doc:
 doc-open:
     cargo doc --workspace --no-deps --open
 
-# Local release hygiene
+# Local release hygiene.
+# cargo audit doesn't read deny.toml — keep --ignore flags here in lockstep
+# with the ignore = [...] block in deny.toml. Justify each addition there.
 security-audit:
-    cargo audit --deny warnings
+    cargo audit --deny warnings \
+        --ignore RUSTSEC-2025-0134 \
+        --ignore RUSTSEC-2025-0141
     cargo deny check
 
 # Session opener
@@ -85,16 +89,20 @@ coverage:
     set -euo pipefail
     out_dir="target/coverage"
     mkdir -p "${out_dir}/html"
-    common=(--workspace --lib --tests
-        --ignore-filename-regex '(^|/)(tests|benches|examples)/')
+    # Exclude tests/benches/examples plus binary entry points and gRPC
+    # transport stubs (integration-tested, not unit-tested). Must be passed
+    # to both the run and every `report` invocation — `report` does not
+    # inherit the run's filter.
+    ignore_re='(^|/)(tests|benches|examples)/|(^|/)(main|suggestor)\.rs$|(^|/)bin/|(^|/)grpc/'
+    common=(--workspace --lib --tests --ignore-filename-regex "${ignore_re}")
     cargo llvm-cov clean --workspace
     rm -rf target/tests/trybuild
     cargo llvm-cov "${common[@]}" --no-report
-    cargo llvm-cov report \
+    cargo llvm-cov report --ignore-filename-regex "${ignore_re}" \
         --json --summary-only --output-path "${out_dir}/converge-coverage.json"
-    cargo llvm-cov report \
+    cargo llvm-cov report --ignore-filename-regex "${ignore_re}" \
         --lcov --output-path "${out_dir}/lcov.info"
-    cargo llvm-cov report \
+    cargo llvm-cov report --ignore-filename-regex "${ignore_re}" \
         --html --output-dir "${out_dir}/html"
     pct=$(python3 -c "import json; d=json.load(open('${out_dir}/converge-coverage.json')); print(f\"{d['data'][0]['totals']['lines']['percent']:.1f}\")")
     echo "coverage: ${pct}%  json→${out_dir}/converge-coverage.json  lcov→${out_dir}/lcov.info  html→${out_dir}/html/index.html"

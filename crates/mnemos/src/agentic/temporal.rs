@@ -96,8 +96,7 @@ impl TimeCrystal {
             .iter()
             .enumerate()
             .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-            .map(|(i, _)| i)
-            .unwrap_or(0)
+            .map_or(0, |(i, _)| i)
     }
 
     /// Check if current time is anomalous compared to pattern.
@@ -267,12 +266,12 @@ impl TemporalMemory {
 
     /// Get prediction for a pattern.
     pub fn predict(&self, pattern_name: &str) -> Option<f32> {
-        self.crystals.get(pattern_name).map(|c| c.predict_now())
+        self.crystals.get(pattern_name).map(TimeCrystal::predict_now)
     }
 
     /// List all patterns.
     pub fn list_patterns(&self) -> Vec<&str> {
-        self.crystals.keys().map(|s| s.as_str()).collect()
+        self.crystals.keys().map(std::string::String::as_str).collect()
     }
 
     /// Get a crystal by name.
@@ -315,9 +314,9 @@ mod tests {
 
         // Simulate activity pattern: high during work hours
         for hour in 0..24 {
-            let value = if hour >= 9 && hour < 17 {
+            let value = if (9..17).contains(&hour) {
                 1.0 // High activity during work hours
-            } else if hour >= 22 || hour < 6 {
+            } else if !(6..22).contains(&hour) {
                 0.0 // No activity at night
             } else {
                 0.3 // Low activity morning/evening
@@ -337,7 +336,7 @@ mod tests {
 
         // Best time should be a work hour
         let best = crystal.best_time();
-        assert!(best >= 9 && best < 17);
+        assert!((9..17).contains(&best));
     }
 
     /// Test: Weekly pattern for recurring tasks.
@@ -379,7 +378,7 @@ mod tests {
         // Normal pattern: low at night, high during day
         for _ in 0..10 {
             for hour in 0..24 {
-                let normal_value = if hour >= 9 && hour < 17 { 0.8 } else { 0.1 };
+                let normal_value = if (9..17).contains(&hour) { 0.8 } else { 0.1 };
                 let timestamp = Utc::now().with_hour(hour).unwrap().with_minute(0).unwrap();
                 crystal.record(timestamp, normal_value);
             }

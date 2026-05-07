@@ -35,7 +35,7 @@ impl KnowledgeRetrievalSuggestor {
 
 #[async_trait]
 impl Suggestor for KnowledgeRetrievalSuggestor {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "knowledge-retrieval"
     }
 
@@ -101,7 +101,7 @@ impl KnowledgeStoreSuggestor {
 
 #[async_trait]
 impl Suggestor for KnowledgeStoreSuggestor {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "knowledge-store"
     }
 

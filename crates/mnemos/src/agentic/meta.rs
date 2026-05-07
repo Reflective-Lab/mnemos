@@ -89,14 +89,13 @@ impl MetaLearner {
         let mut params = self.meta_params.clone();
 
         // If we have a task embedding, adjust based on similar tasks
-        if let Some(emb) = task_embedding {
-            if let Some((_, similar_params)) = self.find_similar_task(emb) {
+        if let Some(emb) = task_embedding
+            && let Some((_, similar_params)) = self.find_similar_task(emb) {
                 // Blend meta-params with similar task's successful params
                 for i in 0..params.len().min(similar_params.len()) {
                     params[i] = 0.7 * params[i] + 0.3 * similar_params[i];
                 }
             }
-        }
 
         params
     }
@@ -137,9 +136,9 @@ impl MetaLearner {
         }
 
         // Reptile update: move meta-params towards task solution
-        for i in 0..self.meta_params.len() {
-            let delta = final_params[i] - self.meta_params[i];
-            self.meta_params[i] += self.meta_lr * delta;
+        for (meta, &fin) in self.meta_params.iter_mut().zip(final_params.iter()) {
+            let delta = fin - *meta;
+            *meta += self.meta_lr * delta;
         }
 
         // Store task embedding for similarity lookup
@@ -428,9 +427,9 @@ impl FewShotLearner {
 
                 // Backward pass
                 let error = pred - target;
-                for i in 0..self.adapted_params.len() {
-                    let grad = 2.0 * error * features[i];
-                    self.adapted_params[i] -= self.adapt_lr * grad;
+                for (param, &feat) in self.adapted_params.iter_mut().zip(features.iter()) {
+                    let grad = 2.0 * error * feat;
+                    *param -= self.adapt_lr * grad;
                 }
             }
         }

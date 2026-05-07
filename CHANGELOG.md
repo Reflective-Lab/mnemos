@@ -6,10 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-07
+
 ### Changed
 
 - Cargo package renamed from `mnemos` to `converge-mnemos-knowledge`; Rust
   library and binary names remain `mnemos` and `mnemos-server`.
+- `Justfile` `security-audit` now passes the same `--ignore RUSTSEC-*`
+  flags `cargo-deny` already ignores in `deny.toml`, with a comment to
+  keep them in lockstep.
+- Coverage recipe excludes binary entry points and gRPC transport stubs
+  (`main.rs`, `suggestor.rs`, `bin/`, `grpc/`) — these are exercised by
+  integration tests, not unit tests, so including them depressed the
+  reported coverage without reflecting actual unit-test reach.
+
+### Fixed
+
+- `deny.toml` `[advisories].ignore` now carries documented entries for
+  `RUSTSEC-2025-0134` (rustls-pemfile via tonic 0.12) and
+  `RUSTSEC-2025-0141` (bincode 1.3.3 — direct dep, trusted local
+  cache files). Mirrors the foundation baseline.
 
 ## [1.0.0] - 2026-05-05
 

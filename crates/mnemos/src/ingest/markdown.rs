@@ -278,7 +278,7 @@ impl MarkdownIngester {
         let (frontmatter, body) = Self::extract_frontmatter(&content);
 
         if let Some(fm) = frontmatter {
-            document.metadata = fm.clone();
+            document.metadata.clone_from(&fm);
             // Try to extract title from front-matter
             if let Some(title) = fm.get("title") {
                 document.title = Some(title.clone());
@@ -824,13 +824,12 @@ impl MarkdownIngester {
     fn is_markdown_file(&self, path: &Path) -> bool {
         path.extension()
             .and_then(|e| e.to_str())
-            .map(|ext| {
+            .is_some_and(|ext| {
                 self.config
                     .markdown_extensions
                     .iter()
                     .any(|m| m.eq_ignore_ascii_case(ext))
             })
-            .unwrap_or(false)
     }
 }
 
@@ -860,7 +859,7 @@ mod tests {
     /// 3. The body after the closing `---` is returned separately
     #[test]
     fn test_extract_frontmatter_basic() {
-        let content = r#"---
+        let content = r"---
 title: My Document
 author: John Doe
 date: 2024-01-15
@@ -868,7 +867,7 @@ date: 2024-01-15
 
 # Hello World
 
-This is the body."#;
+This is the body.";
 
         let (metadata, body) = MarkdownIngester::extract_frontmatter(content);
 
@@ -909,7 +908,7 @@ This is the body."#;
     /// 3. This simplifies storage in HashMap<String, String>
     #[test]
     fn test_extract_frontmatter_arrays() {
-        let content = r#"---
+        let content = r"---
 title: Tagged Post
 tags:
   - rust
@@ -917,7 +916,7 @@ tags:
   - web
 ---
 
-Content here."#;
+Content here.";
 
         let (metadata, _body) = MarkdownIngester::extract_frontmatter(content);
 
@@ -936,11 +935,11 @@ Content here."#;
     /// 3. The entire content is returned as body
     #[test]
     fn test_extract_frontmatter_unclosed() {
-        let content = r#"---
+        let content = r"---
 title: Broken
 author: Nobody
 
-# This has no closing delimiter"#;
+# This has no closing delimiter";
 
         let (metadata, body) = MarkdownIngester::extract_frontmatter(content);
 
@@ -960,7 +959,7 @@ author: Nobody
     #[tokio::test]
     async fn test_heading_hierarchy() {
         let temp_dir = TempDir::new().unwrap();
-        let content = r#"# Main Title
+        let content = r"# Main Title
 
 Intro paragraph.
 
@@ -975,7 +974,7 @@ Content in section two.
 ### Subsection
 
 Deep content.
-"#;
+";
 
         let path = create_temp_file(&temp_dir, "test.md", content).await;
         let ingester = MarkdownIngester::new();
@@ -1070,12 +1069,12 @@ def hello():
     #[tokio::test]
     async fn test_code_block_no_language() {
         let temp_dir = TempDir::new().unwrap();
-        let content = r#"# Unlabeled Code
+        let content = r"# Unlabeled Code
 
 ```
 some generic code
 ```
-"#;
+";
 
         let path = create_temp_file(&temp_dir, "test.md", content).await;
         let ingester = MarkdownIngester::new();
@@ -1099,14 +1098,14 @@ some generic code
     #[tokio::test]
     async fn test_title_from_frontmatter() {
         let temp_dir = TempDir::new().unwrap();
-        let content = r#"---
+        let content = r"---
 title: Front-matter Title
 ---
 
 # Heading Title
 
 Content.
-"#;
+";
 
         let path = create_temp_file(&temp_dir, "test.md", content).await;
         let ingester = MarkdownIngester::new();
@@ -1127,14 +1126,14 @@ Content.
     #[tokio::test]
     async fn test_title_from_heading() {
         let temp_dir = TempDir::new().unwrap();
-        let content = r#"# First Heading
+        let content = r"# First Heading
 
 Some content here.
 
 ## Second Section
 
 More content.
-"#;
+";
 
         let path = create_temp_file(&temp_dir, "test.md", content).await;
         let ingester = MarkdownIngester::new();
@@ -1227,18 +1226,20 @@ More content.
     #[tokio::test]
     async fn test_small_chunk_merging() {
         let temp_dir = TempDir::new().unwrap();
-        let content = r#"# Section
+        let content = r"# Section
 
 A.
 
 B.
 
 C.
-"#;
+";
 
         let path = create_temp_file(&temp_dir, "test.md", content).await;
-        let mut config = IngesterConfig::default();
-        config.min_chunk_size = 100; // Force merging
+        let config = IngesterConfig {
+            min_chunk_size: 100, // Force merging
+            ..IngesterConfig::default()
+        };
 
         let ingester = MarkdownIngester::with_config(config);
         let doc = ingester.ingest_file(&path).await.unwrap();
@@ -1268,8 +1269,10 @@ C.
         );
 
         let path = create_temp_file(&temp_dir, "test.md", &content).await;
-        let mut config = IngesterConfig::default();
-        config.max_chunk_size = 500;
+        let config = IngesterConfig {
+            max_chunk_size: 500,
+            ..IngesterConfig::default()
+        };
         let max_chunk_size = config.max_chunk_size;
 
         let ingester = MarkdownIngester::with_config(config);
@@ -1316,11 +1319,11 @@ C.
     #[tokio::test]
     async fn test_frontmatter_only() {
         let temp_dir = TempDir::new().unwrap();
-        let content = r#"---
+        let content = r"---
 title: Metadata Only
 author: Test
 ---
-"#;
+";
         let path = create_temp_file(&temp_dir, "meta.md", content).await;
 
         let ingester = MarkdownIngester::new();
@@ -1340,10 +1343,10 @@ author: Test
     #[tokio::test]
     async fn test_inline_code_in_heading() {
         let temp_dir = TempDir::new().unwrap();
-        let content = r#"# Using `async/await` in Rust
+        let content = r"# Using `async/await` in Rust
 
 Some explanation here.
-"#;
+";
         let path = create_temp_file(&temp_dir, "test.md", content).await;
 
         let ingester = MarkdownIngester::new();
@@ -1417,12 +1420,12 @@ Some explanation here.
     #[tokio::test]
     async fn test_code_language_with_attributes() {
         let temp_dir = TempDir::new().unwrap();
-        let content = r#"# Test
+        let content = r"# Test
 
 ```rust,ignore
 fn example() {}
 ```
-"#;
+";
         let path = create_temp_file(&temp_dir, "test.md", content).await;
 
         let ingester = MarkdownIngester::new();

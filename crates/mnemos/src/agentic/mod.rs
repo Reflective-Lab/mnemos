@@ -158,6 +158,7 @@ impl AgenticDB {
     }
 
     /// Find applicable skills for a task.
+    #[allow(clippy::unused_async)]
     pub async fn find_skills(&self, _task_description: &str) -> Vec<&Skill> {
         // Note: This is a simplified version
         Vec::new()

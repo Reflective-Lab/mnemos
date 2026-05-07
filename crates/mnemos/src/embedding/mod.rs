@@ -78,14 +78,11 @@ impl EmbeddingEngine {
     ///
     /// Reads OPENAI_API_KEY. Falls back to hash embeddings if not set.
     pub fn from_env() -> Self {
-        match OpenAIEmbedding::from_env() {
-            Ok(provider) => Self {
-                provider: Box::new(provider),
-            },
-            Err(_) => {
-                tracing::warn!("OPENAI_API_KEY not set, falling back to hash embeddings");
-                Self::new(1536) // Match OpenAI default dimensions
-            }
+        if let Ok(provider) = OpenAIEmbedding::from_env() { Self {
+            provider: Box::new(provider),
+        } } else {
+            tracing::warn!("OPENAI_API_KEY not set, falling back to hash embeddings");
+            Self::new(1536) // Match OpenAI default dimensions
         }
     }
 
@@ -187,7 +184,7 @@ impl HashEmbedding {
         }
 
         // Character-level features for typo tolerance
-        for word in words.iter() {
+        for word in &words {
             for char_ngram in word.as_bytes().windows(3) {
                 let hash = self.hash_bytes(char_ngram);
                 let idx = (hash as usize) % self.dimensions;
@@ -204,7 +201,7 @@ impl HashEmbedding {
     fn add_word_embedding(&self, embedding: &mut [f32], text: &str, weight: f32) {
         let hash = self.hash_text(text);
         for i in 0..8 {
-            let idx = ((hash.wrapping_add(i * 0x9e3779b9)) as usize) % self.dimensions;
+            let idx = ((hash.wrapping_add(i * 0x9e37_79b9)) as usize) % self.dimensions;
             let sign = if (hash >> i) & 1 == 0 { 1.0 } else { -1.0 };
             embedding[idx] += sign * weight;
         }

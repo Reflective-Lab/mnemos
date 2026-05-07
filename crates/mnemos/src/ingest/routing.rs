@@ -501,8 +501,7 @@ impl KnowledgeRouter {
             .rules
             .iter()
             .find(|rule| rule.condition.matches(source_path, content, metadata))
-            .map(|rule| &rule.knowledge_type)
-            .unwrap_or(&self.default_type);
+            .map_or(&self.default_type, |rule| &rule.knowledge_type);
 
         self.create_knowledge(entry_id, hint)
     }
@@ -519,8 +518,7 @@ impl KnowledgeRouter {
             .rules
             .iter()
             .find(|rule| rule.condition.matches(source_path, content, metadata))
-            .map(|rule| &rule.knowledge_type)
-            .unwrap_or(&self.default_type);
+            .map_or(&self.default_type, |rule| &rule.knowledge_type);
 
         self.create_knowledge(entry_id, hint)
     }
@@ -592,10 +590,10 @@ impl KnowledgeRouter {
                 let permanence_factor = bg.permanence.support_factor();
 
                 // Bonus if this background knowledge supports active case knowledge
-                let support_bonus = if !bg.supports.is_empty() {
-                    0.2 * bg.supports.len() as f32
-                } else {
+                let support_bonus = if bg.supports.is_empty() {
                     0.0
+                } else {
+                    0.2 * bg.supports.len() as f32
                 };
 
                 // Final score for background knowledge

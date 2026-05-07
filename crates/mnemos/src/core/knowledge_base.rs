@@ -288,12 +288,11 @@ impl KnowledgeBase {
         candidates.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
         // Apply learning-based re-ranking if enabled
-        if options.use_learning {
-            if let Some(learning) = &self.learning {
+        if options.use_learning
+            && let Some(learning) = &self.learning {
                 let learning = learning.read();
                 candidates = learning.rerank(&query_embedding, candidates, &self.vectors);
             }
-        }
 
         // Build results
         let mut results = Vec::new();
@@ -303,11 +302,10 @@ impl KnowledgeBase {
                 let entry = entry.clone();
 
                 // Apply filters
-                if let Some(ref cat) = options.category {
-                    if entry.category.as_ref() != Some(cat) {
+                if let Some(ref cat) = options.category
+                    && entry.category.as_ref() != Some(cat) {
                         continue;
                     }
-                }
 
                 if !options.tags.is_empty()
                     && !options
@@ -391,6 +389,7 @@ impl KnowledgeBase {
     }
 
     /// Link two entries as related.
+    #[allow(clippy::unused_async)]
     pub async fn link_entries(&self, id1: Uuid, id2: Uuid) -> Result<()> {
         if let Some(mut entry1) = self.entries.get_mut(&id1) {
             if !entry1.related_entries.contains(&id2) {
@@ -400,11 +399,10 @@ impl KnowledgeBase {
             return Err(Error::not_found(id1.to_string()));
         }
 
-        if let Some(mut entry2) = self.entries.get_mut(&id2) {
-            if !entry2.related_entries.contains(&id1) {
+        if let Some(mut entry2) = self.entries.get_mut(&id2)
+            && !entry2.related_entries.contains(&id1) {
                 entry2.related_entries.push(id1);
             }
-        }
 
         Ok(())
     }
@@ -512,6 +510,14 @@ fn apply_mmr(mut results: Vec<SearchResult>, lambda: f32) -> Vec<SearchResult> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::KnowledgeEntry;
+    use tempfile::tempdir;
+
+    fn small_config(path: &Path) -> KnowledgeBaseConfig {
+        KnowledgeBaseConfig::default()
+            .with_path(path.to_string_lossy())
+            .with_dimensions(32)
+    }
 
     #[test]
     fn test_cosine_distance() {
@@ -521,5 +527,256 @@ mod tests {
 
         let c = vec![0.0, 1.0, 0.0];
         assert!((cosine_distance(&a, &c) - 1.0).abs() < 1e-6);
+
+        // Zero-norm path returns 1.0 (max distance).
+        let z = vec![0.0, 0.0, 0.0];
+        assert!((cosine_distance(&a, &z) - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn config_builder_sets_fields() {
+        let cfg = KnowledgeBaseConfig::default()
+            .with_path("/tmp/x.db")
+            .with_dimensions(64)
+            .without_learning();
+        assert_eq!(cfg.storage_path, "/tmp/x.db");
+        assert_eq!(cfg.dimensions, 64);
+        assert!(!cfg.learning_enabled);
+    }
+
+    #[tokio::test]
+    async fn open_creates_empty_kb() {
+        let dir = tempdir().unwrap();
+        let kb = KnowledgeBase::open(dir.path().join("kb.db")).await.unwrap();
+        assert_eq!(kb.len(), 0);
+        assert!(kb.is_empty());
+        assert_eq!(kb.config().dimensions, 384);
+    }
+
+    #[tokio::test]
+    async fn add_get_update_delete_roundtrip() {
+        let dir = tempdir().unwrap();
+        let kb = KnowledgeBase::with_config(small_config(&dir.path().join("kb.db")))
+            .await
+            .unwrap();
+
+        let entry = KnowledgeEntry::new("Title", "body text").with_category("docs");
+        let id = kb.add_entry(entry.clone()).await.unwrap();
+        assert_eq!(kb.len(), 1);
+        assert!(!kb.is_empty());
+
+        let fetched = kb.get(id).expect("entry should exist");
+        assert_eq!(fetched.title, "Title");
+
+        let mut updated = fetched;
+        updated.content = "new body".into();
+        kb.update_entry(updated.clone()).await.unwrap();
+        assert_eq!(kb.get(id).unwrap().content, "new body");
+
+        kb.delete_entry(id).await.unwrap();
+        assert_eq!(kb.len(), 0);
+        assert!(kb.get(id).is_none());
+    }
+
+    #[tokio::test]
+    async fn update_missing_entry_errors() {
+        let dir = tempdir().unwrap();
+        let kb = KnowledgeBase::with_config(small_config(&dir.path().join("kb.db")))
+            .await
+            .unwrap();
+        let stranger = KnowledgeEntry::new("ghost", "body");
+        let err = kb.update_entry(stranger).await.unwrap_err();
+        assert!(matches!(err, Error::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn delete_missing_entry_errors() {
+        let dir = tempdir().unwrap();
+        let kb = KnowledgeBase::with_config(small_config(&dir.path().join("kb.db")))
+            .await
+            .unwrap();
+        let err = kb.delete_entry(Uuid::new_v4()).await.unwrap_err();
+        assert!(matches!(err, Error::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn add_entries_batch_persists() {
+        let dir = tempdir().unwrap();
+        let kb = KnowledgeBase::with_config(small_config(&dir.path().join("kb.db")))
+            .await
+            .unwrap();
+        let batch: Vec<_> = (0..5)
+            .map(|i| KnowledgeEntry::new(format!("t{i}"), format!("body {i}")))
+            .collect();
+        let ids = kb.add_entries(batch).await.unwrap();
+        assert_eq!(ids.len(), 5);
+        assert_eq!(kb.len(), 5);
+        kb.flush().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn search_filters_and_results() {
+        let dir = tempdir().unwrap();
+        let kb = KnowledgeBase::with_config(small_config(&dir.path().join("kb.db")))
+            .await
+            .unwrap();
+        kb.add_entry(
+            KnowledgeEntry::new("rust ownership", "borrow checker introduction")
+                .with_category("rust")
+                .with_tags(["ownership"]),
+        )
+        .await
+        .unwrap();
+        kb.add_entry(
+            KnowledgeEntry::new("python decorators", "functions wrapping functions")
+                .with_category("python")
+                .with_tags(["meta"]),
+        )
+        .await
+        .unwrap();
+
+        let all = kb.search_simple("borrow", 10).await.unwrap();
+        assert!(!all.is_empty());
+
+        let only_rust = kb
+            .search(
+                "wrapping",
+                SearchOptions::new(10)
+                    .with_category("rust")
+                    .without_learning(),
+            )
+            .await
+            .unwrap();
+        for r in &only_rust {
+            assert_eq!(r.entry.category.as_deref(), Some("rust"));
+        }
+
+        let by_tag = kb
+            .search("anything", SearchOptions::new(10).with_tags(["ownership"]))
+            .await
+            .unwrap();
+        for r in &by_tag {
+            assert!(r.entry.tags.iter().any(|t| t == "ownership"));
+        }
+
+        // diversity branch
+        let diverse = kb
+            .search("functions", SearchOptions::new(5).with_diversity(0.5))
+            .await
+            .unwrap();
+        assert!(!diverse.is_empty());
+
+        // min_similarity above 1.0 filters everything out
+        let none = kb
+            .search("borrow", SearchOptions::new(10).with_min_similarity(1.0))
+            .await
+            .unwrap();
+        assert!(none.is_empty());
+    }
+
+    #[tokio::test]
+    async fn record_feedback_and_stats() {
+        let dir = tempdir().unwrap();
+        let kb = KnowledgeBase::with_config(small_config(&dir.path().join("kb.db")))
+            .await
+            .unwrap();
+        let id = kb
+            .add_entry(
+                KnowledgeEntry::new("a", "alpha")
+                    .with_category("c")
+                    .with_tags(["t"]),
+            )
+            .await
+            .unwrap();
+        kb.record_feedback(id, true).await.unwrap();
+        kb.record_feedback(id, false).await.unwrap();
+        kb.record_feedback(Uuid::new_v4(), true).await.unwrap(); // unknown id is ok
+
+        let stats = kb.stats();
+        assert_eq!(stats.total_entries, 1);
+        assert_eq!(stats.unique_categories, 1);
+        assert_eq!(stats.unique_tags, 1);
+        assert!(stats.learning_enabled);
+        assert_eq!(stats.dimensions, 32);
+        assert!(stats.total_access_count >= 2);
+    }
+
+    #[tokio::test]
+    async fn linking_and_related() {
+        let dir = tempdir().unwrap();
+        let kb = KnowledgeBase::with_config(small_config(&dir.path().join("kb.db")))
+            .await
+            .unwrap();
+        let a = kb.add_entry(KnowledgeEntry::new("a", "x")).await.unwrap();
+        let b = kb.add_entry(KnowledgeEntry::new("b", "y")).await.unwrap();
+
+        kb.link_entries(a, b).await.unwrap();
+        // idempotent
+        kb.link_entries(a, b).await.unwrap();
+
+        let related = kb.get_related(a, 5);
+        assert_eq!(related.len(), 1);
+        assert_eq!(related[0].id, b);
+
+        // Unknown source id errors.
+        let err = kb.link_entries(Uuid::new_v4(), b).await.unwrap_err();
+        assert!(matches!(err, Error::NotFound(_)));
+
+        // get_related on unknown id returns empty.
+        assert!(kb.get_related(Uuid::new_v4(), 5).is_empty());
+
+        // all_entries surfaces every entry.
+        assert_eq!(kb.all_entries().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn reopens_with_existing_entries() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("kb.db");
+        let kb = KnowledgeBase::with_config(small_config(&path))
+            .await
+            .unwrap();
+        kb.add_entry(KnowledgeEntry::new("persist", "me"))
+            .await
+            .unwrap();
+        kb.flush().await.unwrap();
+        drop(kb);
+
+        let kb2 = KnowledgeBase::with_config(small_config(&path))
+            .await
+            .unwrap();
+        assert_eq!(kb2.len(), 1);
+        assert_eq!(kb2.all_entries()[0].title, "persist");
+    }
+
+    #[tokio::test]
+    async fn learning_disabled_skips_engine() {
+        let dir = tempdir().unwrap();
+        let cfg = small_config(&dir.path().join("kb.db")).without_learning();
+        let kb = KnowledgeBase::with_config(cfg).await.unwrap();
+        let id = kb.add_entry(KnowledgeEntry::new("t", "c")).await.unwrap();
+        // Search and feedback both no-op the learning branch.
+        let _ = kb.search_simple("t", 5).await.unwrap();
+        kb.record_feedback(id, true).await.unwrap();
+        assert!(!kb.stats().learning_enabled);
+    }
+
+    #[test]
+    fn mmr_short_circuits_short_lists() {
+        let entry = KnowledgeEntry::new("t", "c");
+        let r = SearchResult::new(entry, 0.5, 0.5);
+        let one = apply_mmr(vec![r.clone()], 0.5);
+        assert_eq!(one.len(), 1);
+        let empty: Vec<SearchResult> = apply_mmr(Vec::new(), 0.5);
+        assert!(empty.is_empty());
+
+        // Multiple results pass through MMR selection loop.
+        let mut many = Vec::new();
+        for i in 0..3 {
+            let e = KnowledgeEntry::new(format!("t{i}"), "c");
+            many.push(SearchResult::new(e, 0.9 - i as f32 * 0.1, 0.1 * i as f32));
+        }
+        let picked = apply_mmr(many, 0.7);
+        assert!(!picked.is_empty());
     }
 }

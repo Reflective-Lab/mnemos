@@ -1,6 +1,6 @@
 //! gRPC service implementation.
 
-#[allow(clippy::all)]
+#[allow(clippy::all, clippy::pedantic)]
 #[allow(missing_docs)]
 mod knowledge {
     tonic::include_proto!("mnemos.v1");

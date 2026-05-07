@@ -113,7 +113,7 @@ impl KnowledgeEntry {
     /// Record an access and update relevance.
     pub fn record_access(&mut self, relevance_boost: f32) {
         self.access_count += 1;
-        self.learned_relevance = (self.learned_relevance + relevance_boost) / 2.0;
+        self.learned_relevance = f32::midpoint(self.learned_relevance, relevance_boost);
         self.updated_at = Utc::now();
     }
 }
@@ -202,6 +202,6 @@ mod tests {
         entry.record_access(1.5);
 
         assert_eq!(entry.access_count, 1);
-        assert!((entry.learned_relevance - (initial_relevance + 1.5) / 2.0).abs() < f32::EPSILON);
+        assert!((entry.learned_relevance - f32::midpoint(initial_relevance, 1.5)).abs() < f32::EPSILON);
     }
 }

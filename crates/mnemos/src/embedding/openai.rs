@@ -59,9 +59,8 @@ impl OpenAIModel {
     /// Get default dimensions for this model.
     pub fn default_dimensions(&self) -> usize {
         match self {
-            OpenAIModel::TextEmbedding3Small => 1536,
+            OpenAIModel::TextEmbedding3Small | OpenAIModel::TextEmbeddingAda002 => 1536,
             OpenAIModel::TextEmbedding3Large => 3072,
-            OpenAIModel::TextEmbeddingAda002 => 1536,
         }
     }
 
@@ -74,7 +73,7 @@ impl OpenAIModel {
     }
 
     /// Parse from string.
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "text-embedding-3-small" => Some(OpenAIModel::TextEmbedding3Small),
             "text-embedding-3-large" => Some(OpenAIModel::TextEmbedding3Large),
@@ -224,8 +223,8 @@ impl EmbeddingCache {
         }
 
         // If still at capacity, remove oldest
-        if self.entries.len() >= self.capacity {
-            if let Some(oldest_key) = self
+        if self.entries.len() >= self.capacity
+            && let Some(oldest_key) = self
                 .entries
                 .iter()
                 .min_by_key(|(_, v)| v.created_at)
@@ -233,7 +232,6 @@ impl EmbeddingCache {
             {
                 self.entries.remove(&oldest_key);
             }
-        }
 
         self.entries.insert(
             key,
@@ -265,11 +263,10 @@ impl OpenAIEmbedding {
     /// Create a new OpenAI embedding provider.
     pub fn new(api_key: impl Into<String>, model: Option<String>) -> Self {
         let mut config = OpenAIConfig::default();
-        if let Some(model_str) = model {
-            if let Some(model) = OpenAIModel::from_str(&model_str) {
+        if let Some(model_str) = model
+            && let Some(model) = OpenAIModel::parse(&model_str) {
                 config.model = model;
             }
-        }
         Self::with_config(api_key, config)
     }
 
@@ -445,7 +442,7 @@ impl OpenAIEmbedding {
 
             let request = EmbeddingRequest {
                 model: self.config.model.as_str().to_string(),
-                input: uncached_texts.iter().map(|s| s.to_string()).collect(),
+                input: uncached_texts.iter().map(std::string::ToString::to_string).collect(),
                 dimensions: if self.config.model.supports_custom_dimensions() {
                     Some(self.effective_dimensions)
                 } else {
@@ -584,10 +581,10 @@ mod tests {
     #[test]
     fn test_model_parsing() {
         assert_eq!(
-            OpenAIModel::from_str("text-embedding-3-small"),
+            OpenAIModel::parse("text-embedding-3-small"),
             Some(OpenAIModel::TextEmbedding3Small)
         );
-        assert_eq!(OpenAIModel::from_str("unknown-model"), None);
+        assert_eq!(OpenAIModel::parse("unknown-model"), None);
     }
 
     #[test]

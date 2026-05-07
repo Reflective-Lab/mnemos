@@ -18,7 +18,7 @@ fn embedding_benchmark(c: &mut Criterion) {
 
     for text in texts {
         group.bench_with_input(BenchmarkId::new("embed", text.len()), &text, |b, text| {
-            b.iter(|| runtime.block_on(engine.embed(text)).unwrap())
+            b.iter(|| runtime.block_on(engine.embed(text)).unwrap());
         });
     }
 

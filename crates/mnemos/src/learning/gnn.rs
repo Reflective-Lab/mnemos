@@ -129,7 +129,7 @@ impl GnnLayer {
             .collect();
 
         // Softmax
-        let max_score = scores.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+        let max_score = scores.iter().copied().fold(f32::NEG_INFINITY, f32::max);
         let exp_scores: Vec<f32> = scores.iter().map(|s| (s - max_score).exp()).collect();
         let sum_exp: f32 = exp_scores.iter().sum();
 
@@ -139,12 +139,13 @@ impl GnnLayer {
     /// Apply linear transformation.
     fn linear_transform(&self, input: &[f32]) -> Vec<f32> {
         let mut output = vec![0.0f32; self.input_dim];
+        let cols = input.len().min(self.input_dim);
 
-        for i in 0..self.input_dim {
-            for j in 0..input.len().min(self.input_dim) {
+        for (i, out) in output.iter_mut().enumerate() {
+            for (j, &val) in input.iter().take(cols).enumerate() {
                 let weight_idx = i * self.input_dim + j;
                 if weight_idx < self.weights.len() {
-                    output[i] += input[j] * self.weights[weight_idx];
+                    *out += val * self.weights[weight_idx];
                 }
             }
         }

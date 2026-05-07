@@ -93,3 +93,66 @@ impl Error {
         Self::Ingest(msg.into())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn constructors_and_display() {
+        let cases: Vec<(Error, &str)> = vec![
+            (Error::storage("disk full"), "Storage error: disk full"),
+            (
+                Error::embedding("bad provider"),
+                "Embedding error: bad provider",
+            ),
+            (Error::learning("nan"), "Learning error: nan"),
+            (Error::not_found("abc"), "Entry not found: abc"),
+            (
+                Error::config("missing key"),
+                "Invalid configuration: missing key",
+            ),
+            (Error::ingest("bad markdown"), "Ingest error: bad markdown"),
+            (
+                Error::DimensionMismatch {
+                    expected: 384,
+                    actual: 128,
+                },
+                "Invalid embedding dimension: expected 384, got 128",
+            ),
+            (
+                Error::IndexCorruption("checksum".into()),
+                "Index corruption: checksum",
+            ),
+            (
+                Error::ConcurrencyConflict("lock".into()),
+                "Concurrent access conflict: lock",
+            ),
+        ];
+        for (err, expected) in cases {
+            assert_eq!(err.to_string(), expected);
+        }
+    }
+
+    #[test]
+    fn from_io_and_json() {
+        let io: Error = std::io::Error::new(std::io::ErrorKind::NotFound, "x").into();
+        assert!(matches!(io, Error::Io(_)));
+        assert!(io.to_string().starts_with("IO error:"));
+
+        let json_err = serde_json::from_str::<u32>("not json").unwrap_err();
+        let json: Error = json_err.into();
+        assert!(matches!(json, Error::Json(_)));
+    }
+
+    #[test]
+    fn from_bincode() {
+        // bincode 1.x errors implement From; serializing an unsupported type
+        // (e.g. a Vec longer than its size limit) produces one. Easiest
+        // construction: deserialize garbage bytes into an i32.
+        let bin: Result<i32> = bincode::deserialize::<i32>(&[]).map_err(Into::into);
+        let err = bin.unwrap_err();
+        assert!(matches!(err, Error::Serialization(_)));
+        assert!(err.to_string().starts_with("Serialization error:"));
+    }
+}

@@ -66,10 +66,8 @@ impl JobType {
     pub fn default_interval(&self) -> Duration {
         match self {
             JobType::PatternDetector => Duration::hours(1),
-            JobType::GapIdentifier => Duration::days(1),
-            JobType::KnowledgeClassifier => Duration::days(1),
-            JobType::RelationshipMiner => Duration::weeks(1),
-            JobType::ModelConsolidator => Duration::weeks(1),
+            JobType::GapIdentifier | JobType::KnowledgeClassifier => Duration::days(1),
+            JobType::RelationshipMiner | JobType::ModelConsolidator => Duration::weeks(1),
         }
     }
 

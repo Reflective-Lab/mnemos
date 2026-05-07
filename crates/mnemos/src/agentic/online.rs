@@ -103,12 +103,13 @@ impl OnlineLearner {
         let error = prediction - target;
         let loss = error * error;
 
-        // Compute gradients with EWC penalty
+        // Compute gradients with EWC penalty.
+        // Indexes `features`, `self.parameters`, and each snapshot's parallel
+        // arrays in lockstep — iterator chains become unreadable here.
+        #[allow(clippy::needless_range_loop)]
         for i in 0..self.parameters.len() {
-            // Base gradient (MSE loss)
             let base_grad = 2.0 * error * features[i];
 
-            // EWC penalty: sum over previous tasks
             let mut ewc_grad = 0.0;
             for snapshot in &self.parameter_history {
                 let delta = self.parameters[i] - snapshot.parameters[i];
@@ -116,9 +117,7 @@ impl OnlineLearner {
                 ewc_grad += 2.0 * self.ewc_lambda * importance * delta;
             }
 
-            // Combined update
-            let total_grad = base_grad + ewc_grad;
-            self.parameters[i] -= self.learning_rate * total_grad;
+            self.parameters[i] -= self.learning_rate * (base_grad + ewc_grad);
         }
 
         // Update Fisher diagonal based on gradient magnitude
@@ -134,9 +133,9 @@ impl OnlineLearner {
     fn update_fisher(&mut self, features: &[f32], error: f32) {
         // Fisher diagonal approximated by squared gradients
         let decay = 0.99;
-        for i in 0..self.fisher_diagonal.len() {
-            let grad_sq = (2.0 * error * features[i]).powi(2);
-            self.fisher_diagonal[i] = decay * self.fisher_diagonal[i] + (1.0 - decay) * grad_sq;
+        for (fisher, &feat) in self.fisher_diagonal.iter_mut().zip(features.iter()) {
+            let grad_sq = (2.0 * error * feat).powi(2);
+            *fisher = decay * *fisher + (1.0 - decay) * grad_sq;
         }
     }
 
@@ -277,12 +276,12 @@ impl ExperienceWindow {
     ///
     /// Returns a random sample of experiences for replay.
     pub fn sample(&self, count: usize) -> Vec<&Experience> {
+        use rand::Rng;
         if self.experiences.is_empty() || count == 0 {
             return Vec::new();
         }
 
         // Simple reservoir sampling
-        use rand::Rng;
         let mut rng = rand::thread_rng();
         let mut result: Vec<&Experience> = Vec::with_capacity(count.min(self.experiences.len()));
 
@@ -409,11 +408,16 @@ impl DriftDetector {
         self.count += 1;
         let n = self.count as f32;
 
-        for i in 0..features.len() {
-            let delta = features[i] - self.running_mean[i];
-            self.running_mean[i] += delta / n;
-            let delta2 = features[i] - self.running_mean[i];
-            self.running_var[i] += (delta * delta2 - self.running_var[i]) / n;
+        for ((mean, var), &feat) in self
+            .running_mean
+            .iter_mut()
+            .zip(self.running_var.iter_mut())
+            .zip(features.iter())
+        {
+            let delta = feat - *mean;
+            *mean += delta / n;
+            let delta2 = feat - *mean;
+            *var += (delta * delta2 - *var) / n;
         }
 
         shift_score > self.threshold

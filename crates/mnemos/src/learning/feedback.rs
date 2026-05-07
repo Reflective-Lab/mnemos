@@ -332,8 +332,8 @@ impl FeedbackCollector {
             let mut sessions = self.sessions.write().await;
             if let Some(session) = sessions.get_mut(&session_id) {
                 // Check if this is a follow-up query
-                if let Some(prev_query) = &session.current_query {
-                    if !prev_query.viewed.is_empty() {
+                if let Some(prev_query) = &session.current_query
+                    && !prev_query.viewed.is_empty() {
                         self.emit_signal(FeedbackSignal::new(
                             session_id,
                             Some(query_id),
@@ -344,7 +344,6 @@ impl FeedbackCollector {
                         ))
                         .await;
                     }
-                }
 
                 // Set new query context
                 session.current_query = Some(QueryContext {
@@ -616,11 +615,9 @@ impl FeedbackProcessor {
                 result_ids: _,
                 text: _,
             } = &signal.signal
-            {
-                if let Some(query_id) = signal.query_id {
+                && let Some(query_id) = signal.query_id {
                     query_embeddings.insert(query_id, embedding.clone());
                 }
-            }
         }
 
         // Second pass: process interaction signals
@@ -826,8 +823,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_co_access_on_session_end() {
-        let mut config = FeedbackConfig::default();
-        config.co_access_min_views = 2;
+        let config = FeedbackConfig {
+            co_access_min_views: 2,
+            ..FeedbackConfig::default()
+        };
         let collector = FeedbackCollector::with_config(config);
 
         let session = collector.start_session().await;
@@ -853,8 +852,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_dwell_filtering() {
-        let mut config = FeedbackConfig::default();
-        config.min_dwell_ms = 500;
+        let config = FeedbackConfig {
+            min_dwell_ms: 500,
+            ..FeedbackConfig::default()
+        };
         let collector = FeedbackCollector::with_config(config);
 
         let session = collector.start_session().await;

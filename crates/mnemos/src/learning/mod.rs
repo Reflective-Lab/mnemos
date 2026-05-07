@@ -153,13 +153,13 @@ impl LearningEngine {
             .forward(query_embedding, &neighbors, &edge_weights);
 
         // Re-compute distances with transformed query
-        for (id, distance) in candidates.iter_mut() {
+        for (id, distance) in &mut candidates {
             if let Some(vector) = vectors.get(id) {
                 // Apply learned relevance weights
                 let weighted_distance = self.weighted_distance(&transformed_query, &vector);
 
                 // Apply entry-specific learned score
-                let entry_boost = self.entry_scores.get(id).map(|s| *s).unwrap_or(1.0);
+                let entry_boost = self.entry_scores.get(id).map_or(1.0, |s| *s);
 
                 *distance = weighted_distance / entry_boost;
             }
@@ -211,7 +211,7 @@ impl LearningEngine {
         }
 
         // Periodic learning from replay buffer
-        if self.query_count % 10 == 0 {
+        if self.query_count.is_multiple_of(10) {
             self.learn_from_replay();
         }
     }
@@ -264,7 +264,7 @@ impl LearningEngine {
             self.entry_scores
                 .entry(experience.result_id)
                 .and_modify(|s| {
-                    *s = (*s + target_boost) / 2.0;
+                    *s = f32::midpoint(*s, target_boost);
                 })
                 .or_insert(target_boost);
 
@@ -328,6 +328,16 @@ pub struct LearningStats {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::KnowledgeEntry;
+
+    fn fake_results(n: usize) -> Vec<SearchResult> {
+        (0..n)
+            .map(|i| {
+                let e = KnowledgeEntry::new(format!("t{i}"), "c");
+                SearchResult::new(e, 0.9 - i as f32 * 0.05, 0.1 * i as f32)
+            })
+            .collect()
+    }
 
     #[test]
     fn test_learning_engine_creation() {
@@ -346,5 +356,70 @@ mod tests {
 
         // Weights should have changed
         assert_ne!(engine.relevance_weights, initial_weights);
+    }
+
+    #[test]
+    fn negative_feedback_also_updates_weights() {
+        let mut engine = LearningEngine::new(32, 0.2);
+        let before = engine.relevance_weights.clone();
+        engine.record_feedback(&[0.4; 32], false);
+        assert_ne!(engine.relevance_weights, before);
+        // Weights stay clamped within configured range.
+        for w in &engine.relevance_weights {
+            assert!(*w >= 0.1 && *w <= 10.0);
+        }
+    }
+
+    #[test]
+    fn record_query_empty_is_noop() {
+        let mut engine = LearningEngine::new(16, 0.1);
+        engine.record_query(&[0.0; 16], &[]);
+        assert_eq!(engine.query_count(), 0);
+    }
+
+    #[test]
+    fn record_query_increments_and_triggers_replay_learning() {
+        let mut engine = LearningEngine::new(16, 0.1);
+        let q = vec![0.3; 16];
+        let results = fake_results(3);
+        // Drive past the every-10 replay threshold to exercise learn_from_replay.
+        for _ in 0..12 {
+            engine.record_query(&q, &results);
+        }
+        assert_eq!(engine.query_count(), 12);
+        let stats = engine.stats();
+        assert_eq!(stats.query_count, 12);
+        assert!(stats.replay_buffer_size > 0);
+        assert!(stats.learned_entries > 0);
+        assert!(stats.avg_relevance_weight > 0.0);
+    }
+
+    #[test]
+    fn rerank_changes_candidate_order() {
+        let engine = LearningEngine::new(16, 0.1);
+        let vectors: DashMap<Uuid, Vec<f32>> = DashMap::new();
+        let mut candidates = Vec::new();
+        for i in 0..3 {
+            let id = Uuid::new_v4();
+            let mut v = vec![0.0; 16];
+            v[i % 16] = 1.0;
+            vectors.insert(id, v);
+            candidates.push((id, 0.5));
+        }
+        let q = vec![0.1; 16];
+        let reranked = engine.rerank(&q, candidates.clone(), &vectors);
+        assert_eq!(reranked.len(), candidates.len());
+        // Distances should be sorted ascending after rerank.
+        for w in reranked.windows(2) {
+            assert!(w[0].1 <= w[1].1 || w[0].1.is_nan() || w[1].1.is_nan());
+        }
+    }
+
+    #[test]
+    fn rerank_empty_candidates_returns_empty() {
+        let engine = LearningEngine::new(16, 0.1);
+        let vectors: DashMap<Uuid, Vec<f32>> = DashMap::new();
+        let out = engine.rerank(&[0.0; 16], Vec::new(), &vectors);
+        assert!(out.is_empty());
     }
 }

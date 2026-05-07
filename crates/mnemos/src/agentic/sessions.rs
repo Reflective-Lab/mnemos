@@ -149,10 +149,9 @@ impl Reward {
     /// Get numeric value.
     pub fn value(&self) -> f32 {
         match self {
-            Reward::Positive(v) => *v,
+            Reward::Positive(v) | Reward::Terminal(v) => *v,
             Reward::Negative(v) => -*v,
             Reward::Neutral => 0.0,
-            Reward::Terminal(v) => *v,
         }
     }
 
