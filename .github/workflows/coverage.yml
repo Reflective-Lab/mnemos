@@ -28,9 +28,15 @@ jobs:
         with:
           tool: cargo-llvm-cov
       - name: Generate coverage
+        # Keep this `--ignore-filename-regex` in lockstep with the
+        # `coverage` recipe in the project Justfile.
+        # Excludes: test/bench/example dirs, binary entry points
+        # (main.rs, suggestor.rs), and gRPC transport stubs (bin/, grpc/).
+        # Those are exercised by integration tests, not unit tests, so
+        # including them depresses coverage without reflecting unit reach.
         run: |
           cargo llvm-cov --workspace --lib --tests \
-            --ignore-filename-regex '(^|/)(tests|benches|examples)/' \
+            --ignore-filename-regex '(^|/)(tests|benches|examples)/|(^|/)(main|suggestor)\.rs$|(^|/)bin/|(^|/)grpc/' \
             --json --summary-only --output-path coverage.json
       - name: Extract coverage percentage
         id: cov
