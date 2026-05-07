@@ -1,7 +1,9 @@
 # mnemos
 
 [![CI](https://github.com/Reflective-Lab/mnemos-knowledge/actions/workflows/ci.yml/badge.svg)](https://github.com/Reflective-Lab/mnemos-knowledge/actions/workflows/ci.yml)
+[![Coverage](https://github.com/Reflective-Lab/mnemos-knowledge/actions/workflows/coverage.yml/badge.svg)](https://github.com/Reflective-Lab/mnemos-knowledge/actions/workflows/coverage.yml)
 [![Security](https://github.com/Reflective-Lab/mnemos-knowledge/actions/workflows/security.yml/badge.svg)](https://github.com/Reflective-Lab/mnemos-knowledge/actions/workflows/security.yml)
+[![Stability](https://github.com/Reflective-Lab/mnemos-knowledge/actions/workflows/stability.yml/badge.svg)](https://github.com/Reflective-Lab/mnemos-knowledge/actions/workflows/stability.yml)
 [![Crates.io](https://img.shields.io/crates/v/converge-mnemos-knowledge.svg)](https://crates.io/crates/converge-mnemos-knowledge)
 [![docs.rs](https://docs.rs/converge-mnemos-knowledge/badge.svg)](https://docs.rs/converge-mnemos-knowledge)
 [![dependency status](https://deps.rs/repo/github/Reflective-Lab/mnemos-knowledge/status.svg)](https://deps.rs/repo/github/Reflective-Lab/mnemos-knowledge)
