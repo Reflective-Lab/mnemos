@@ -15,7 +15,7 @@ jobs:
     name: Benchmarks (compile)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install protoc
         run: |
           sudo apt-get update
@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: bench-compile
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install protoc
         run: |
           sudo apt-get update
@@ -66,7 +66,7 @@ jobs:
     name: Soak Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install protoc
         run: |
           sudo apt-get update
@@ -86,7 +86,7 @@ jobs:
     name: Security Audit (blocking)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
@@ -104,5 +104,5 @@ jobs:
     name: Cargo Deny
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: EmbarkStudios/cargo-deny-action@v2
