@@ -18,7 +18,7 @@ tokio = { version = "1.48", features = ["full", "macros", "sync"] }
 tokio-stream = { version = "0.1", features = ["net", "sync"] }
 
 # gRPC / Protobuf
-tonic = { version = "0.12", features = ["tls"] }
+tonic = { version = "0.14", features = ["tls"] }
 tonic-build = "0.12"
 prost = "0.13"
 prost-types = "0.13"
