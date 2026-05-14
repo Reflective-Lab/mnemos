@@ -37,6 +37,8 @@ feedback while Converge still decides what becomes fact.
 - Feedback collection, replay, batch learning, and insight jobs.
 - CLI and gRPC server surfaces.
 - `KnowledgeRetrievalSuggestor` and `KnowledgeStoreSuggestor`.
+- Typed proposal provenance through `ProvenanceSource` / `MNEMOS_PROVENANCE`.
+- Suggestor-boundary tracing through `mnemos.suggestor.execute` spans.
 
 ## Boundary
 

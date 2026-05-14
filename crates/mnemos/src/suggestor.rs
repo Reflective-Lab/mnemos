@@ -7,9 +7,11 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use converge_pack::{AgentEffect, Context, ContextKey, ProposedFact, Suggestor};
+use converge_pack::{AgentEffect, Context, ContextKey, Suggestor};
+use tracing::Instrument;
 
 use crate::core::{KnowledgeBase, KnowledgeEntry, SearchOptions};
+use crate::provenance::{MNEMOS_PROVENANCE, suggestor_span};
 
 /// Searches the knowledge base for information relevant to the current context.
 ///
@@ -48,39 +50,50 @@ impl Suggestor for KnowledgeRetrievalSuggestor {
     }
 
     async fn execute(&self, ctx: &dyn Context) -> AgentEffect {
-        let seeds = ctx.get(ContextKey::Seeds);
-        let mut proposals = Vec::new();
+        let span = suggestor_span(
+            "knowledge-retrieval",
+            ContextKey::Seeds,
+            ContextKey::Hypotheses,
+            ctx.count(ContextKey::Seeds),
+        );
 
-        for seed in seeds {
-            let query = seed.content();
-            let options = SearchOptions {
-                limit: self.max_results,
-                ..SearchOptions::default()
-            };
+        async move {
+            let seeds = ctx.get(ContextKey::Seeds);
+            let mut proposals = Vec::new();
 
-            if let Ok(results) = self.kb.search(query, options).await {
-                for (i, result) in results.into_iter().enumerate() {
-                    let content = serde_json::json!({
-                        "source": "knowledge-base",
-                        "query": query,
-                        "title": result.entry.title,
-                        "content": result.entry.content,
-                        "score": result.score,
-                    });
-                    proposals.push(
-                        ProposedFact::new(
-                            ContextKey::Hypotheses,
-                            format!("kb-{}-{}", seed.id(), i),
-                            content.to_string(),
-                            "knowledge-retrieval",
-                        )
-                        .with_confidence(f64::from(result.score)),
-                    );
+            for seed in seeds {
+                let query = seed.content();
+                let options = SearchOptions {
+                    limit: self.max_results,
+                    ..SearchOptions::default()
+                };
+
+                if let Ok(results) = self.kb.search(query, options).await {
+                    for (i, result) in results.into_iter().enumerate() {
+                        let content = serde_json::json!({
+                            "source": "knowledge-base",
+                            "query": query,
+                            "title": result.entry.title,
+                            "content": result.entry.content,
+                            "score": result.score,
+                        });
+                        proposals.push(
+                            MNEMOS_PROVENANCE
+                                .proposed_fact(
+                                    ContextKey::Hypotheses,
+                                    format!("kb-{}-{}", seed.id(), i),
+                                    content.to_string(),
+                                )
+                                .with_confidence(f64::from(result.score)),
+                        );
+                    }
                 }
             }
-        }
 
-        AgentEffect::with_proposals(proposals)
+            AgentEffect::with_proposals(proposals)
+        }
+        .instrument(span)
+        .await
     }
 }
 
@@ -118,24 +131,34 @@ impl Suggestor for KnowledgeStoreSuggestor {
     }
 
     async fn execute(&self, ctx: &dyn Context) -> AgentEffect {
-        let evaluations = ctx.get(ContextKey::Evaluations);
-        let mut proposals = Vec::new();
+        let span = suggestor_span(
+            "knowledge-store",
+            ContextKey::Evaluations,
+            ContextKey::Seeds,
+            ctx.count(ContextKey::Evaluations),
+        );
 
-        for eval in evaluations {
-            let entry = KnowledgeEntry::new(eval.id().as_str(), eval.content())
-                .with_category("convergence-result")
-                .with_tags(vec!["auto-stored", "formation-output"]);
+        async move {
+            let evaluations = ctx.get(ContextKey::Evaluations);
+            let mut proposals = Vec::new();
 
-            if self.kb.add_entry(entry).await.is_ok() {
-                proposals.push(ProposedFact::new(
-                    ContextKey::Seeds,
-                    format!("stored-{}", eval.id()),
-                    format!("stored evaluation {} in knowledge base", eval.id()),
-                    "knowledge-store",
-                ));
+            for eval in evaluations {
+                let entry = KnowledgeEntry::new(eval.id().as_str(), eval.content())
+                    .with_category("convergence-result")
+                    .with_tags(vec!["auto-stored", "formation-output"]);
+
+                if self.kb.add_entry(entry).await.is_ok() {
+                    proposals.push(MNEMOS_PROVENANCE.proposed_fact(
+                        ContextKey::Seeds,
+                        format!("stored-{}", eval.id()),
+                        format!("stored evaluation {} in knowledge base", eval.id()),
+                    ));
+                }
             }
-        }
 
-        AgentEffect::with_proposals(proposals)
+            AgentEffect::with_proposals(proposals)
+        }
+        .instrument(span)
+        .await
     }
 }

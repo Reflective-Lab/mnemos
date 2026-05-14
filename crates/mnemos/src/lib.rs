@@ -68,6 +68,7 @@ pub mod embedding;
 pub mod error;
 pub mod ingest;
 pub mod learning;
+pub mod provenance;
 pub mod storage;
 pub mod suggestor;
 
@@ -120,5 +121,6 @@ pub use crate::core::{
 pub use crate::embedding::EmbeddingEngine;
 pub use crate::error::{Error, Result};
 pub use crate::learning::LearningEngine;
+pub use crate::provenance::{MNEMOS_PROVENANCE, ProvenanceSource, UnknownProvenanceSource};
 pub use crate::storage::StorageBackend;
 pub use crate::suggestor::{KnowledgeRetrievalSuggestor, KnowledgeStoreSuggestor};
