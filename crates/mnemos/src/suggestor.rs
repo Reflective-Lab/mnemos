@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use converge_pack::{
-    AgentEffect, Context, ContextFact, ContextKey, FactPayload, ProvenanceSource, Suggestor,
-    TextPayload,
+    AgentEffect, Context, ContextFact, ContextKey, ExecutionIdentity, FactPayload,
+    ProvenanceSource, Suggestor, TextPayload,
 };
 use serde::{Deserialize, Serialize};
 use tracing::Instrument;
@@ -18,6 +18,15 @@ use crate::core::{KnowledgeBase, KnowledgeEntry, SearchOptions};
 use crate::provenance::{MNEMOS_PROVENANCE, suggestor_span};
 
 /// A typed knowledge-search hit proposed by Mnemos retrieval.
+///
+/// Carries an [`ExecutionIdentity`] recording the producer crate +
+/// runtime config (query text, requested result count) so audit and
+/// replay can answer *which Mnemos KB version, with which retrieval
+/// parameters, returned this hit*.
+///
+/// Bumped from family-version `1` to `2` on 2026-05-15 when
+/// `execution_identity` became a required field. v1 had no external
+/// consumers; only in-tree call sites needed to update.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct KnowledgeHitPayload {
@@ -31,11 +40,34 @@ pub struct KnowledgeHitPayload {
     pub content: String,
     /// Retrieval score in the search backend's normalized range.
     pub score: f32,
+    /// Producer + backend + runtime config that produced this hit.
+    pub execution_identity: ExecutionIdentity,
 }
 
 impl FactPayload for KnowledgeHitPayload {
     const FAMILY: &'static str = "mnemos.knowledge.hit";
-    const VERSION: u16 = 1;
+    const VERSION: u16 = 2;
+}
+
+/// Backend identifier for Mnemos retrieval. Tracks the KB store
+/// flavor; today there is one ("knowledge-base").
+const MNEMOS_BACKEND: &str = "mnemos-knowledge-base-v1";
+
+fn mnemos_runtime_config(query: &str, max_results: usize) -> String {
+    serde_json::to_string(&serde_json::json!({
+        "query": query,
+        "max_results": max_results,
+    }))
+    .unwrap_or_default()
+}
+
+fn retrieval_execution_identity(query: &str, max_results: usize) -> ExecutionIdentity {
+    ExecutionIdentity::non_native(
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION"),
+        MNEMOS_BACKEND,
+        mnemos_runtime_config(query, max_results),
+    )
 }
 
 /// Searches the knowledge base for information relevant to the current context.
@@ -96,6 +128,7 @@ impl Suggestor for KnowledgeRetrievalSuggestor {
                 };
 
                 if let Ok(results) = self.kb.search(query, options).await {
+                    let identity = retrieval_execution_identity(query, self.max_results);
                     for (i, result) in results.into_iter().enumerate() {
                         let payload = KnowledgeHitPayload {
                             source: "knowledge-base".to_string(),
@@ -103,6 +136,7 @@ impl Suggestor for KnowledgeRetrievalSuggestor {
                             title: result.entry.title,
                             content: result.entry.content,
                             score: result.score,
+                            execution_identity: identity.clone(),
                         };
                         proposals.push(
                             MNEMOS_PROVENANCE
