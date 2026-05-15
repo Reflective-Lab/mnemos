@@ -123,4 +123,6 @@ pub use crate::error::{Error, Result};
 pub use crate::learning::LearningEngine;
 pub use crate::provenance::{MNEMOS_PROVENANCE, ProvenanceSource, UnknownProvenanceSource};
 pub use crate::storage::StorageBackend;
-pub use crate::suggestor::{KnowledgeRetrievalSuggestor, KnowledgeStoreSuggestor};
+pub use crate::suggestor::{
+    KnowledgeHitPayload, KnowledgeRetrievalSuggestor, KnowledgeStoreSuggestor,
+};

@@ -6,12 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-05-15
+
 ### Added
 
 - Typed `ProvenanceSource` / `MNEMOS_PROVENANCE` adapter so Mnemos proposals
   use Mnemos's canonical provenance at the `ProposedFact` boundary.
 - `mnemos.suggestor.execute` tracing spans at knowledge suggestor boundaries,
   with structured provenance, suggestor name, context keys, and input count.
+- `KnowledgeHitPayload` as the typed retrieval-hit payload for Mnemos
+  knowledge proposals.
 
 ## [1.1.1] - 2026-05-08
 

@@ -7,11 +7,35 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use converge_pack::{AgentEffect, Context, ContextKey, Suggestor};
+use converge_pack::{
+    AgentEffect, Context, ContextFact, ContextKey, FactPayload, Suggestor, TextPayload,
+};
+use serde::{Deserialize, Serialize};
 use tracing::Instrument;
 
 use crate::core::{KnowledgeBase, KnowledgeEntry, SearchOptions};
 use crate::provenance::{MNEMOS_PROVENANCE, suggestor_span};
+
+/// A typed knowledge-search hit proposed by Mnemos retrieval.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct KnowledgeHitPayload {
+    /// Source system that produced the hit.
+    pub source: String,
+    /// Query text used for retrieval.
+    pub query: String,
+    /// Knowledge entry title.
+    pub title: String,
+    /// Knowledge entry body.
+    pub content: String,
+    /// Retrieval score in the search backend's normalized range.
+    pub score: f32,
+}
+
+impl FactPayload for KnowledgeHitPayload {
+    const FAMILY: &'static str = "mnemos.knowledge.hit";
+    const VERSION: u16 = 1;
+}
 
 /// Searches the knowledge base for information relevant to the current context.
 ///
@@ -62,7 +86,9 @@ impl Suggestor for KnowledgeRetrievalSuggestor {
             let mut proposals = Vec::new();
 
             for seed in seeds {
-                let query = seed.content();
+                let Some(query) = seed.text() else {
+                    continue;
+                };
                 let options = SearchOptions {
                     limit: self.max_results,
                     ..SearchOptions::default()
@@ -70,19 +96,19 @@ impl Suggestor for KnowledgeRetrievalSuggestor {
 
                 if let Ok(results) = self.kb.search(query, options).await {
                     for (i, result) in results.into_iter().enumerate() {
-                        let content = serde_json::json!({
-                            "source": "knowledge-base",
-                            "query": query,
-                            "title": result.entry.title,
-                            "content": result.entry.content,
-                            "score": result.score,
-                        });
+                        let payload = KnowledgeHitPayload {
+                            source: "knowledge-base".to_string(),
+                            query: query.to_string(),
+                            title: result.entry.title,
+                            content: result.entry.content,
+                            score: result.score,
+                        };
                         proposals.push(
                             MNEMOS_PROVENANCE
                                 .proposed_fact(
                                     ContextKey::Hypotheses,
                                     format!("kb-{}-{}", seed.id(), i),
-                                    content.to_string(),
+                                    payload,
                                 )
                                 .with_confidence(f64::from(result.score)),
                         );
@@ -143,7 +169,10 @@ impl Suggestor for KnowledgeStoreSuggestor {
             let mut proposals = Vec::new();
 
             for eval in evaluations {
-                let entry = KnowledgeEntry::new(eval.id().as_str(), eval.content())
+                let Some(content) = fact_content_for_store(eval) else {
+                    continue;
+                };
+                let entry = KnowledgeEntry::new(eval.id().as_str(), content)
                     .with_category("convergence-result")
                     .with_tags(vec!["auto-stored", "formation-output"]);
 
@@ -151,7 +180,10 @@ impl Suggestor for KnowledgeStoreSuggestor {
                     proposals.push(MNEMOS_PROVENANCE.proposed_fact(
                         ContextKey::Seeds,
                         format!("stored-{}", eval.id()),
-                        format!("stored evaluation {} in knowledge base", eval.id()),
+                        TextPayload::new(format!(
+                            "stored evaluation {} in knowledge base",
+                            eval.id()
+                        )),
                     ));
                 }
             }
@@ -161,4 +193,12 @@ impl Suggestor for KnowledgeStoreSuggestor {
         .instrument(span)
         .await
     }
+}
+
+fn fact_content_for_store(fact: &ContextFact) -> Option<String> {
+    fact.text().map(str::to_string).or_else(|| {
+        fact.to_wire()
+            .ok()
+            .map(|wire| wire.payload.payload.to_string())
+    })
 }

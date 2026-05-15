@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/mnemos"]
 
 [workspace.package]
-version = "1.1.1"
+version = "1.2.0"
 edition = "2024"
 rust-version = "1.94.0"
 license = "MIT"
@@ -92,3 +92,6 @@ wildcard_imports = "allow"
 opt-level = 3
 lto = true
 codegen-units = 1
+
+[patch.crates-io]
+converge-pack = { path = "../../bedrock-platform/converge/crates/pack" }
