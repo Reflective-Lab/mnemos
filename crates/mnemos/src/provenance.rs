@@ -1,107 +1,30 @@
-//! Typed provenance source vocabulary for extension-originated facts.
+//! Mnemos's `ProvenanceSource` marker.
+//!
+//! Migrated to the [`converge_pack::ProvenanceSource`] trait. Public
+//! surface is unchanged at call sites:
+//! `MNEMOS_PROVENANCE.proposed_fact(...)` reads the same.
 
-use std::{error::Error, fmt, str::FromStr};
-
-use converge_pack::{ContextKey, FactPayload, ProposalId, ProposedFact};
-use serde::{Deserialize, Serialize};
+use converge_pack::{ContextKey, ProvenanceSource};
 use tracing::info_span;
 
-/// Canonical provenance source for Mnemos proposal emission.
-pub const MNEMOS_PROVENANCE: ProvenanceSource = ProvenanceSource::Mnemos;
+/// Marker type identifying mnemos-emitted facts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Mnemos;
 
-/// Canonical extension provenance sources.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum ProvenanceSource {
-    /// Cedar policy and authorization gates.
-    Arbiter,
-    /// Showcase and worked-example surfaces.
-    Atelier,
-    /// Source-specific connector ports.
-    Embassy,
-    /// Solver-backed optimization suggestors.
-    Ferrox,
-    /// Generic providers, storage, vectors, tools, and adapters.
-    Manifold,
-    /// Knowledge, recall, retrieval, and memory suggestors.
-    Mnemos,
-    /// Analytics, ML, feature extraction, and monitoring suggestors.
-    Prism,
-}
-
-impl ProvenanceSource {
-    /// All canonical extension provenance sources.
-    pub const ALL: [Self; 7] = [
-        Self::Arbiter,
-        Self::Atelier,
-        Self::Embassy,
-        Self::Ferrox,
-        Self::Manifold,
-        Self::Mnemos,
-        Self::Prism,
-    ];
-
-    /// Return the canonical string used by `converge-pack` provenance today.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Arbiter => "arbiter",
-            Self::Atelier => "atelier",
-            Self::Embassy => "embassy",
-            Self::Ferrox => "ferrox",
-            Self::Manifold => "manifold",
-            Self::Mnemos => "mnemos",
-            Self::Prism => "prism",
-        }
-    }
-
-    /// Create a proposed fact using this typed provenance source.
-    #[must_use]
-    pub fn proposed_fact(
-        self,
-        key: ContextKey,
-        id: impl Into<ProposalId>,
-        payload: impl FactPayload + PartialEq,
-    ) -> ProposedFact {
-        ProposedFact::new(key, id, payload, self.as_str())
+impl ProvenanceSource for Mnemos {
+    fn as_str(&self) -> &'static str {
+        "mnemos"
     }
 }
 
-impl fmt::Display for ProvenanceSource {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
+/// Canonical provenance constant for mnemos.
+pub const MNEMOS_PROVENANCE: Mnemos = Mnemos;
 
-impl FromStr for ProvenanceSource {
-    type Err = UnknownProvenanceSource;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        match value {
-            "arbiter" => Ok(Self::Arbiter),
-            "atelier" => Ok(Self::Atelier),
-            "embassy" => Ok(Self::Embassy),
-            "ferrox" => Ok(Self::Ferrox),
-            "manifold" => Ok(Self::Manifold),
-            "mnemos" => Ok(Self::Mnemos),
-            "prism" => Ok(Self::Prism),
-            other => Err(UnknownProvenanceSource(other.to_string())),
-        }
-    }
-}
-
-/// Error returned when parsing an unknown provenance source string.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UnknownProvenanceSource(String);
-
-impl fmt::Display for UnknownProvenanceSource {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "unknown provenance source: {}", self.0)
-    }
-}
-
-impl Error for UnknownProvenanceSource {}
-
+/// Legacy per-crate suggestor span helper.
+///
+/// Internal-only transitional shim. The engine emits the canonical
+/// `suggestor.execute` span automatically; existing call sites in this
+/// crate are migrated as they're touched.
 pub(crate) fn suggestor_span(
     name: &str,
     input_key: ContextKey,
@@ -123,12 +46,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn provenance_sources_round_trip_through_strings() {
-        for source in ProvenanceSource::ALL {
-            let parsed: ProvenanceSource = source.as_str().parse().unwrap();
-            assert_eq!(parsed, source);
-            assert_eq!(source.to_string(), source.as_str());
-        }
+    fn provenance_string_is_stable() {
+        assert_eq!(MNEMOS_PROVENANCE.as_str(), "mnemos");
     }
 
     #[test]
@@ -138,7 +57,6 @@ mod tests {
             "diagnostic",
             converge_pack::TextPayload::new("content"),
         );
-
         assert_eq!(fact.provenance(), "mnemos");
     }
 }

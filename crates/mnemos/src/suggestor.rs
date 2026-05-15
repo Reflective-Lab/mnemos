@@ -8,7 +8,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use converge_pack::{
-    AgentEffect, Context, ContextFact, ContextKey, FactPayload, Suggestor, TextPayload,
+    AgentEffect, Context, ContextFact, ContextKey, FactPayload, ProvenanceSource, Suggestor,
+    TextPayload,
 };
 use serde::{Deserialize, Serialize};
 use tracing::Instrument;
