@@ -52,20 +52,22 @@ impl FactPayload for KnowledgeHitPayload {
 /// flavor; today there is one ("knowledge-base").
 const MNEMOS_BACKEND: &str = "mnemos-knowledge-base-v1";
 
-fn mnemos_runtime_config(query: &str, max_results: usize) -> String {
-    serde_json::to_string(&serde_json::json!({
-        "query": query,
-        "max_results": max_results,
-    }))
-    .unwrap_or_default()
+/// Typed runtime config for a Mnemos retrieval execution. The JSON
+/// serialization is the canonical `runtime_config` per the workspace
+/// `Runtime Config Encoding` standard.
+#[derive(serde::Serialize)]
+struct MnemosRetrievalConfig<'a> {
+    query: &'a str,
+    max_results: usize,
 }
 
 fn retrieval_execution_identity(query: &str, max_results: usize) -> ExecutionIdentity {
+    let config = MnemosRetrievalConfig { query, max_results };
     ExecutionIdentity::non_native(
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
         MNEMOS_BACKEND,
-        mnemos_runtime_config(query, max_results),
+        ExecutionIdentity::runtime_config_from_typed(&config),
     )
 }
 
@@ -110,7 +112,6 @@ impl Suggestor for KnowledgeRetrievalSuggestor {
     }
 
     async fn execute(&self, ctx: &dyn Context) -> AgentEffect {
-
         async move {
             let seeds = ctx.get(ContextKey::Seeds);
             let mut proposals = Vec::new();
@@ -192,7 +193,6 @@ impl Suggestor for KnowledgeStoreSuggestor {
     }
 
     async fn execute(&self, ctx: &dyn Context) -> AgentEffect {
-
         async move {
             let evaluations = ctx.get(ContextKey::Evaluations);
             let mut proposals = Vec::new();
