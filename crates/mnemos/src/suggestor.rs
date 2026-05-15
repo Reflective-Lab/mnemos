@@ -12,10 +12,9 @@ use converge_pack::{
     ProvenanceSource, Suggestor, TextPayload,
 };
 use serde::{Deserialize, Serialize};
-use tracing::Instrument;
 
 use crate::core::{KnowledgeBase, KnowledgeEntry, SearchOptions};
-use crate::provenance::{MNEMOS_PROVENANCE, suggestor_span};
+use crate::provenance::MNEMOS_PROVENANCE;
 
 /// A typed knowledge-search hit proposed by Mnemos retrieval.
 ///
@@ -106,13 +105,11 @@ impl Suggestor for KnowledgeRetrievalSuggestor {
         ctx.has(ContextKey::Seeds) && !ctx.has(ContextKey::Hypotheses)
     }
 
+    fn provenance(&self) -> &'static str {
+        MNEMOS_PROVENANCE.as_str()
+    }
+
     async fn execute(&self, ctx: &dyn Context) -> AgentEffect {
-        let span = suggestor_span(
-            "knowledge-retrieval",
-            ContextKey::Seeds,
-            ContextKey::Hypotheses,
-            ctx.count(ContextKey::Seeds),
-        );
 
         async move {
             let seeds = ctx.get(ContextKey::Seeds);
@@ -153,7 +150,6 @@ impl Suggestor for KnowledgeRetrievalSuggestor {
 
             AgentEffect::with_proposals(proposals)
         }
-        .instrument(span)
         .await
     }
 }
@@ -191,13 +187,11 @@ impl Suggestor for KnowledgeStoreSuggestor {
                 .any(|f| f.id().starts_with("stored-"))
     }
 
+    fn provenance(&self) -> &'static str {
+        MNEMOS_PROVENANCE.as_str()
+    }
+
     async fn execute(&self, ctx: &dyn Context) -> AgentEffect {
-        let span = suggestor_span(
-            "knowledge-store",
-            ContextKey::Evaluations,
-            ContextKey::Seeds,
-            ctx.count(ContextKey::Evaluations),
-        );
 
         async move {
             let evaluations = ctx.get(ContextKey::Evaluations);
@@ -225,7 +219,6 @@ impl Suggestor for KnowledgeStoreSuggestor {
 
             AgentEffect::with_proposals(proposals)
         }
-        .instrument(span)
         .await
     }
 }
