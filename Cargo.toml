@@ -92,6 +92,3 @@ wildcard_imports = "allow"
 opt-level = 3
 lto = true
 codegen-units = 1
-
-[patch.crates-io]
-converge-pack = { path = "../../bedrock-platform/converge/crates/pack" }
