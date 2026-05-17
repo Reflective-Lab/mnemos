@@ -11,7 +11,7 @@ repository = "https://github.com/Reflective-Lab/mnemos-knowledge"
 
 [workspace.dependencies]
 # Converge platform contract
-converge-pack = "3.9.0"
+converge-pack = "3.9.1"
 
 # Async runtime
 tokio = { version = "1.48", features = ["full", "macros", "sync"] }
