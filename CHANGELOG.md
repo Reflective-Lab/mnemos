@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-05-17
+
+### Changed
+
+- Bumped `converge-pack` to `3.9.1` to track the platform contract baseline.
+- No public API change versus `1.2.1`; patch release for Converge `3.9.1`
+  alignment.
+
 ## [1.2.0] - 2026-05-15
 
 ### Added
