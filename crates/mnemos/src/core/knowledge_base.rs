@@ -4,6 +4,7 @@ use super::{KnowledgeEntry, SearchOptions, SearchResult};
 use crate::embedding::EmbeddingEngine;
 use crate::error::{Error, Result};
 use crate::learning::LearningEngine;
+use crate::math::cosine_similarity;
 use crate::storage::StorageBackend;
 
 use dashmap::DashMap;
@@ -457,16 +458,12 @@ pub struct KnowledgeBaseStats {
 }
 
 /// Calculate cosine distance between two vectors.
+///
+/// Returns `1.0 - cosine_similarity(a, b)`.  A zero-norm vector yields a
+/// distance of `1.0` (maximally distant), consistent with the previous
+/// behaviour.
 fn cosine_distance(a: &[f32], b: &[f32]) -> f32 {
-    let dot: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
-    let norm_a: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
-    let norm_b: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
-
-    if norm_a == 0.0 || norm_b == 0.0 {
-        1.0
-    } else {
-        1.0 - (dot / (norm_a * norm_b))
-    }
+    1.0 - cosine_similarity(a, b)
 }
 
 /// Apply Maximal Marginal Relevance for diversity.

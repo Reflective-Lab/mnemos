@@ -68,6 +68,7 @@ pub mod embedding;
 pub mod error;
 pub mod ingest;
 pub mod learning;
+pub(crate) mod math;
 pub mod provenance;
 pub mod storage;
 pub mod suggestor;

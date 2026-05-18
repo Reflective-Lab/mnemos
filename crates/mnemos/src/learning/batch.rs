@@ -45,6 +45,7 @@ use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 use super::feedback::{FeedbackSignal, ProcessedFeedback, SignalType};
+use crate::math::cosine_similarity;
 
 /// Type of batch job.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -731,22 +732,6 @@ impl BatchJob for RelationshipMinerJob {
     }
 }
 
-/// Compute cosine similarity between two vectors.
-fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
-    if a.len() != b.len() {
-        return 0.0;
-    }
-
-    let dot: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
-    let norm_a: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
-    let norm_b: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
-
-    if norm_a == 0.0 || norm_b == 0.0 {
-        0.0
-    } else {
-        dot / (norm_a * norm_b)
-    }
-}
 
 /// Scheduler for batch jobs.
 pub struct BatchScheduler {
