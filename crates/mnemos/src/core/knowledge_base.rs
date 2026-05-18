@@ -285,7 +285,7 @@ impl KnowledgeBase {
             .collect();
 
         // Sort by distance (ascending)
-        candidates.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+        candidates.sort_by(|a, b| a.1.total_cmp(&b.1));
 
         // Apply learning-based re-ranking if enabled
         if options.use_learning
@@ -492,7 +492,7 @@ fn apply_mmr(mut results: Vec<SearchResult>, lambda: f32) -> Vec<SearchResult> {
                     // Simplified: use score similarity
                     1.0 - (s.score - candidate.score).abs()
                 })
-                .max_by(|a, b| a.partial_cmp(b).unwrap())
+                .max_by(|a, b| a.total_cmp(b))
                 .unwrap_or(0.0);
 
             // MMR score

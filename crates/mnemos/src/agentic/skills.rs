@@ -272,7 +272,7 @@ impl SkillLibrary {
             .filter(|(score, _)| *score > 0.0)
             .collect();
 
-        scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+        scored.sort_by(|a, b| b.0.total_cmp(&a.0));
 
         scored.into_iter().take(limit).map(|(_, s)| s).collect()
     }
@@ -287,11 +287,7 @@ impl SkillLibrary {
     /// Get highest success rate skills.
     pub fn most_reliable(&self, limit: usize) -> Vec<&Skill> {
         let mut skills: Vec<_> = self.skills.iter().filter(|s| s.usage_count >= 3).collect();
-        skills.sort_by(|a, b| {
-            b.success_rate
-                .partial_cmp(&a.success_rate)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        skills.sort_by(|a, b| b.success_rate.total_cmp(&a.success_rate));
         skills.into_iter().take(limit).collect()
     }
 

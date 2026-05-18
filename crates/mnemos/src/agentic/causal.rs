@@ -252,11 +252,7 @@ impl CausalMemory {
     /// Get strongest causal relationships.
     pub fn strongest_relationships(&self, limit: usize) -> Vec<&CausalEdge> {
         let mut edges: Vec<_> = self.edges.iter().collect();
-        edges.sort_by(|a, b| {
-            b.strength
-                .partial_cmp(&a.strength)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        edges.sort_by(|a, b| b.strength.total_cmp(&a.strength));
         edges.into_iter().take(limit).collect()
     }
 
