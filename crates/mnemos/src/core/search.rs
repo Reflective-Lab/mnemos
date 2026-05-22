@@ -38,6 +38,28 @@ impl SearchResult {
         }
     }
 
+    /// Create a result from a retrieval rank score.
+    ///
+    /// This is used by hybrid retrieval, where the final ordering score comes
+    /// from rank fusion rather than raw vector similarity.
+    pub fn with_rank_score(
+        entry: KnowledgeEntry,
+        similarity: f32,
+        distance: f32,
+        rank_score: f32,
+    ) -> Self {
+        let relevance_boost = entry.learned_relevance;
+        let score = rank_score * relevance_boost;
+
+        Self {
+            entry,
+            similarity,
+            relevance_boost,
+            score,
+            distance,
+        }
+    }
+
     /// Get the entry ID.
     pub fn id(&self) -> Uuid {
         self.entry.id
@@ -68,10 +90,13 @@ pub struct SearchOptions {
     /// Diversity factor for MMR (Maximal Marginal Relevance).
     pub diversity: f32,
 
-    /// Use hybrid search (combine vector + keyword).
+    /// Use hybrid search (combine vector and BM25 lexical ranks with RRF).
     pub hybrid: bool,
 
-    /// Keyword weight for hybrid search (0.0 to 1.0).
+    /// Keyword weight reserved for weighted hybrid modes.
+    ///
+    /// The current hybrid implementation uses Reciprocal Rank Fusion and does
+    /// not compare or normalize raw keyword/vector scores.
     pub keyword_weight: f32,
 }
 
@@ -137,6 +162,10 @@ impl SearchOptions {
     }
 
     /// Enable hybrid search.
+    ///
+    /// The argument is retained for API compatibility with weighted hybrid
+    /// callers. Current hybrid ranking uses equal-weight Reciprocal Rank
+    /// Fusion over vector and BM25 ranks.
     pub fn hybrid(mut self, keyword_weight: f32) -> Self {
         self.hybrid = true;
         self.keyword_weight = keyword_weight.clamp(0.0, 1.0);

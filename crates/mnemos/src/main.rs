@@ -69,6 +69,10 @@ enum Commands {
         /// Disable learning-based ranking
         #[arg(long)]
         no_learning: bool,
+
+        /// Use hybrid BM25 + vector retrieval with Reciprocal Rank Fusion
+        #[arg(long)]
+        hybrid: bool,
     },
 
     /// Get an entry by ID
@@ -159,6 +163,7 @@ async fn main() -> anyhow::Result<()> {
             min_similarity,
             category,
             no_learning,
+            hybrid,
         } => {
             let request = SearchRequest {
                 query: query.clone(),
@@ -169,7 +174,7 @@ async fn main() -> anyhow::Result<()> {
                 use_learning: !no_learning,
                 include_related: false,
                 diversity: 0.0,
-                hybrid: false,
+                hybrid,
                 keyword_weight: 0.3,
             };
 

@@ -13,6 +13,7 @@ Knowledge base for the `mnemos` Converge extension.
 
 ## Architecture
 
+- [[Architecture/Retrieval]] — vector, BM25, and RRF recall behavior
 - [[Architecture/Surface]] — public crate surface and contract shape
 
 ## Building
@@ -22,6 +23,7 @@ Knowledge base for the `mnemos` Converge extension.
 
 ## Planning
 
+- [[Planning/Knowledgebase Platform EPIC]]
 - [[Planning/MILESTONES]]
 
 ## History

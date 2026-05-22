@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Hybrid retrieval now combines vector ranks with BM25 lexical ranks using
+  Reciprocal Rank Fusion when `SearchOptions::hybrid(...)` or the CLI
+  `search --hybrid` flag is enabled.
+
+### Fixed
+
+- `just check-memory` now targets the renamed Cargo package
+  `converge-mnemos-knowledge`.
+
 ## [1.2.2] - 2026-05-17
 
 ### Changed

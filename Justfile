@@ -22,7 +22,7 @@ check:
 
 # Check memory-only mode
 check-memory:
-    cargo check -p mnemos --no-default-features --features memory-only
+    cargo check -p converge-mnemos-knowledge --no-default-features --features memory-only
 
 # Run tests
 test:

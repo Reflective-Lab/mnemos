@@ -7,6 +7,8 @@ All notable changes to `mnemos` are recorded here.
 
 ## [Unreleased]
 
+- Hybrid retrieval can now combine vector ranks with BM25 lexical ranks using
+  Reciprocal Rank Fusion when callers enable hybrid search.
 - Adopted the [Extension Release Checklist](https://github.com/Reflective-Lab/converge/blob/main/kb/Standards/Extension%20Release%20Checklist.md):
   - Wired `just security-audit`, `just coverage`, `just performance-profile`, `just soak`.
   - Added `.github/workflows/{ci,coverage,security,stability}.yml`.

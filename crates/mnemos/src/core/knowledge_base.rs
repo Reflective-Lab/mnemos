@@ -10,10 +10,15 @@ use crate::storage::StorageBackend;
 use dashmap::DashMap;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::Arc;
 use tracing::{debug, info, instrument};
 use uuid::Uuid;
+
+const BM25_K1: f32 = 1.2;
+const BM25_B: f32 = 0.75;
+const RRF_K: f32 = 60.0;
 
 /// Configuration for the knowledge base.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -270,23 +275,20 @@ impl KnowledgeBase {
     /// Search the knowledge base.
     #[instrument(skip(self), fields(k = options.limit))]
     pub async fn search(&self, query: &str, options: SearchOptions) -> Result<Vec<SearchResult>> {
+        if options.limit == 0 {
+            return Ok(Vec::new());
+        }
+
         // Generate query embedding
         let query_embedding = self.embeddings.embed(query).await?;
+        let scoped_entries = self.filtered_entries(&options);
 
-        // Find similar vectors using brute force for now
+        // Find similar vectors using brute force for now, after scope filters.
         // (ruvector HNSW would be used in production)
-        let mut candidates: Vec<(Uuid, f32)> = self
-            .vectors
-            .iter()
-            .map(|entry| {
-                let id = *entry.key();
-                let distance = cosine_distance(&query_embedding, entry.value());
-                (id, distance)
-            })
-            .collect();
+        let mut candidates = self.vector_candidates(&query_embedding, &scoped_entries);
 
         // Sort by distance (ascending)
-        candidates.sort_by(|a, b| a.1.total_cmp(&b.1));
+        sort_candidates_by_distance(&mut candidates);
 
         // Apply learning-based re-ranking if enabled
         if options.use_learning
@@ -294,43 +296,14 @@ impl KnowledgeBase {
         {
             let learning = learning.read();
             candidates = learning.rerank(&query_embedding, candidates, &self.vectors);
+            sort_candidates_by_distance(&mut candidates);
         }
 
-        // Build results
-        let mut results = Vec::new();
-
-        for (id, distance) in candidates.into_iter().take(options.limit * 2) {
-            if let Some(entry) = self.entries.get(&id) {
-                let entry = entry.clone();
-
-                // Apply filters
-                if let Some(ref cat) = options.category
-                    && entry.category.as_ref() != Some(cat)
-                {
-                    continue;
-                }
-
-                if !options.tags.is_empty()
-                    && !options
-                        .tags
-                        .iter()
-                        .any(|t| entry.tags.iter().any(|et| et == t))
-                {
-                    continue;
-                }
-
-                let similarity = 1.0 - distance;
-                if similarity < options.min_similarity {
-                    continue;
-                }
-
-                results.push(SearchResult::new(entry, similarity, distance));
-
-                if results.len() >= options.limit {
-                    break;
-                }
-            }
-        }
+        let mut results = if options.hybrid {
+            self.hybrid_results(query, &scoped_entries, &candidates, &options)
+        } else {
+            self.vector_results(&candidates, &options)
+        };
 
         // Apply MMR diversity if requested
         if options.diversity > 0.0 {
@@ -345,6 +318,106 @@ impl KnowledgeBase {
 
         debug!("Search returned {} results", results.len());
         Ok(results)
+    }
+
+    fn filtered_entries(&self, options: &SearchOptions) -> Vec<(Uuid, KnowledgeEntry)> {
+        self.entries
+            .iter()
+            .filter_map(|entry| {
+                if entry_matches_options(entry.value(), options) {
+                    Some((*entry.key(), entry.value().clone()))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    fn vector_candidates(
+        &self,
+        query_embedding: &[f32],
+        entries: &[(Uuid, KnowledgeEntry)],
+    ) -> Vec<(Uuid, f32)> {
+        entries
+            .iter()
+            .filter_map(|(id, _)| {
+                self.vectors
+                    .get(id)
+                    .map(|vector| (*id, cosine_distance(query_embedding, &vector)))
+            })
+            .collect()
+    }
+
+    fn vector_results(
+        &self,
+        candidates: &[(Uuid, f32)],
+        options: &SearchOptions,
+    ) -> Vec<SearchResult> {
+        let mut results = Vec::new();
+
+        for (id, distance) in candidates {
+            let similarity = 1.0 - distance;
+            if similarity < options.min_similarity {
+                continue;
+            }
+
+            if let Some(entry) = self.entries.get(id) {
+                results.push(SearchResult::new(entry.clone(), similarity, *distance));
+            }
+
+            if results.len() >= options.limit {
+                break;
+            }
+        }
+
+        results
+    }
+
+    fn hybrid_results(
+        &self,
+        query: &str,
+        entries: &[(Uuid, KnowledgeEntry)],
+        candidates: &[(Uuid, f32)],
+        options: &SearchOptions,
+    ) -> Vec<SearchResult> {
+        let vector_rank: Vec<Uuid> = candidates.iter().map(|(id, _)| *id).collect();
+        let lexical_docs: Vec<(Uuid, String)> = entries
+            .iter()
+            .filter(|(id, _)| self.vectors.contains_key(id))
+            .map(|(id, entry)| (*id, entry.embedding_text()))
+            .collect();
+        let lexical_rank: Vec<Uuid> = bm25_rank(query, &lexical_docs)
+            .into_iter()
+            .map(|(id, _)| id)
+            .collect();
+        let fused = reciprocal_rank_fusion(&[vector_rank, lexical_rank], RRF_K);
+        let distances: HashMap<Uuid, f32> = candidates.iter().copied().collect();
+        let mut results = Vec::new();
+
+        for (id, rrf_score) in fused {
+            let Some(distance) = distances.get(&id).copied() else {
+                continue;
+            };
+            let similarity = 1.0 - distance;
+            if similarity < options.min_similarity {
+                continue;
+            }
+
+            if let Some(entry) = self.entries.get(&id) {
+                results.push(SearchResult::with_rank_score(
+                    entry.clone(),
+                    similarity,
+                    distance,
+                    rrf_score,
+                ));
+            }
+
+            if results.len() >= options.limit {
+                break;
+            }
+        }
+
+        results
     }
 
     /// Simple search with default options.
@@ -466,6 +539,136 @@ fn cosine_distance(a: &[f32], b: &[f32]) -> f32 {
     1.0 - cosine_similarity(a, b)
 }
 
+fn entry_matches_options(entry: &KnowledgeEntry, options: &SearchOptions) -> bool {
+    if let Some(ref category) = options.category
+        && entry.category.as_ref() != Some(category)
+    {
+        return false;
+    }
+
+    if !options.tags.is_empty()
+        && !options
+            .tags
+            .iter()
+            .any(|tag| entry.tags.iter().any(|entry_tag| entry_tag == tag))
+    {
+        return false;
+    }
+
+    true
+}
+
+fn sort_candidates_by_distance(candidates: &mut [(Uuid, f32)]) {
+    candidates.sort_by(|a, b| {
+        a.1.total_cmp(&b.1)
+            .then_with(|| a.0.as_bytes().cmp(b.0.as_bytes()))
+    });
+}
+
+fn lexical_tokens(text: &str) -> Vec<String> {
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+
+    for ch in text.chars().flat_map(char::to_lowercase) {
+        if ch.is_alphanumeric() || matches!(ch, '_' | '-' | '+' | '#') {
+            current.push(ch);
+        } else if !current.is_empty() {
+            tokens.push(std::mem::take(&mut current));
+        }
+    }
+
+    if !current.is_empty() {
+        tokens.push(current);
+    }
+
+    tokens
+}
+
+fn bm25_rank(query: &str, docs: &[(Uuid, String)]) -> Vec<(Uuid, f32)> {
+    let query_terms: HashSet<String> = lexical_tokens(query).into_iter().collect();
+    if query_terms.is_empty() || docs.is_empty() {
+        return Vec::new();
+    }
+
+    let doc_tokens: Vec<Vec<String>> = docs.iter().map(|(_, text)| lexical_tokens(text)).collect();
+    let total_len: usize = doc_tokens.iter().map(Vec::len).sum();
+    if total_len == 0 {
+        return Vec::new();
+    }
+
+    let doc_count = docs.len() as f32;
+    let avg_doc_len = total_len as f32 / doc_count;
+    let mut doc_frequency: HashMap<String, usize> = HashMap::new();
+
+    for tokens in &doc_tokens {
+        let mut seen = HashSet::new();
+        for token in tokens {
+            if seen.insert(token) {
+                *doc_frequency.entry(token.clone()).or_default() += 1;
+            }
+        }
+    }
+
+    let mut ranked = Vec::new();
+
+    for ((id, _), tokens) in docs.iter().zip(doc_tokens.iter()) {
+        if tokens.is_empty() {
+            continue;
+        }
+
+        let mut term_frequency: HashMap<&str, usize> = HashMap::new();
+        for token in tokens {
+            *term_frequency.entry(token.as_str()).or_default() += 1;
+        }
+
+        let doc_len = tokens.len() as f32;
+        let mut score = 0.0f32;
+
+        for term in &query_terms {
+            let Some(df) = doc_frequency.get(term) else {
+                continue;
+            };
+            let tf = term_frequency.get(term.as_str()).copied().unwrap_or(0) as f32;
+            if tf == 0.0 {
+                continue;
+            }
+
+            let df = *df as f32;
+            let idf = ((doc_count - df + 0.5) / (df + 0.5) + 1.0).ln();
+            let denominator = tf + BM25_K1 * (1.0 - BM25_B + BM25_B * doc_len / avg_doc_len);
+            score += idf * (tf * (BM25_K1 + 1.0)) / denominator;
+        }
+
+        if score > 0.0 {
+            ranked.push((*id, score));
+        }
+    }
+
+    ranked.sort_by(|a, b| {
+        b.1.total_cmp(&a.1)
+            .then_with(|| a.0.as_bytes().cmp(b.0.as_bytes()))
+    });
+    ranked
+}
+
+fn reciprocal_rank_fusion(rankings: &[Vec<Uuid>], rrf_k: f32) -> Vec<(Uuid, f32)> {
+    let mut scores: HashMap<Uuid, f32> = HashMap::new();
+
+    for ranking in rankings {
+        for (rank_index, id) in ranking.iter().enumerate() {
+            let rank = rank_index as f32 + 1.0;
+            *scores.entry(*id).or_default() += 1.0 / (rrf_k + rank);
+        }
+    }
+
+    let mut fused: Vec<_> = scores.into_iter().collect();
+    fused.sort_by(|a, b| {
+        b.1.total_cmp(&a.1)
+            .then_with(|| a.0.as_bytes().cmp(b.0.as_bytes()))
+    });
+    fused
+}
+
 /// Apply Maximal Marginal Relevance for diversity.
 fn apply_mmr(mut results: Vec<SearchResult>, lambda: f32) -> Vec<SearchResult> {
     if results.len() <= 1 {
@@ -489,7 +692,7 @@ fn apply_mmr(mut results: Vec<SearchResult>, lambda: f32) -> Vec<SearchResult> {
                     // Simplified: use score similarity
                     1.0 - (s.score - candidate.score).abs()
                 })
-                .max_by(|a, b| a.total_cmp(b))
+                .max_by(f32::total_cmp)
                 .unwrap_or(0.0);
 
             // MMR score
@@ -531,6 +734,70 @@ mod tests {
         // Zero-norm path returns 1.0 (max distance).
         let z = vec![0.0, 0.0, 0.0];
         assert!((cosine_distance(&a, &z) - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn lexical_tokens_preserve_exact_retrieval_terms() {
+        let tokens = lexical_tokens("BM25, RRF, C++, C#, memory-only, and IDF.");
+
+        assert!(tokens.iter().any(|token| token == "bm25"));
+        assert!(tokens.iter().any(|token| token == "rrf"));
+        assert!(tokens.iter().any(|token| token == "c++"));
+        assert!(tokens.iter().any(|token| token == "c#"));
+        assert!(tokens.iter().any(|token| token == "memory-only"));
+        assert!(tokens.iter().any(|token| token == "idf"));
+    }
+
+    #[test]
+    fn bm25_rewards_rare_exact_terms() {
+        let exact = Uuid::new_v4();
+        let semantic = Uuid::new_v4();
+        let hybrid = Uuid::new_v4();
+        let docs = vec![
+            (
+                exact,
+                "BM25 scores documents with term frequency and IDF.".to_string(),
+            ),
+            (
+                semantic,
+                "Vector embeddings capture broad semantic similarity.".to_string(),
+            ),
+            (
+                hybrid,
+                "Hybrid recall combines several retrieval ranks.".to_string(),
+            ),
+        ];
+
+        let ranked = bm25_rank("BM25 IDF", &docs);
+
+        assert_eq!(ranked.first().map(|(id, _)| *id), Some(exact));
+        assert!(ranked.first().is_some_and(|(_, score)| *score > 0.0));
+    }
+
+    #[test]
+    fn reciprocal_rank_fusion_rewards_shared_high_rank() {
+        let shared = Uuid::new_v4();
+        let lexical_only = Uuid::new_v4();
+        let vector_only = Uuid::new_v4();
+
+        let fused = reciprocal_rank_fusion(
+            &[vec![shared, vector_only], vec![lexical_only, shared]],
+            RRF_K,
+        );
+
+        let shared_score = fused
+            .iter()
+            .find(|(id, _)| *id == shared)
+            .map(|(_, score)| *score)
+            .unwrap();
+        let vector_only_score = fused
+            .iter()
+            .find(|(id, _)| *id == vector_only)
+            .map(|(_, score)| *score)
+            .unwrap();
+
+        assert_eq!(fused.first().map(|(id, _)| *id), Some(shared));
+        assert!(shared_score > vector_only_score);
     }
 
     #[test]
@@ -677,6 +944,69 @@ mod tests {
             .await
             .unwrap();
         assert!(none.is_empty());
+    }
+
+    #[tokio::test]
+    async fn search_zero_limit_returns_empty() {
+        let dir = tempdir().unwrap();
+        let kb = KnowledgeBase::with_config(small_config(&dir.path().join("kb.db")))
+            .await
+            .unwrap();
+        kb.add_entry(KnowledgeEntry::new("BM25", "RRF hybrid retrieval"))
+            .await
+            .unwrap();
+
+        let vector = kb
+            .search("BM25", SearchOptions::new(0).without_learning())
+            .await
+            .unwrap();
+        let hybrid = kb
+            .search("BM25", SearchOptions::new(0).hybrid(0.3).without_learning())
+            .await
+            .unwrap();
+
+        assert!(vector.is_empty());
+        assert!(hybrid.is_empty());
+    }
+
+    #[tokio::test]
+    async fn hybrid_search_uses_bm25_and_rrf() {
+        let dir = tempdir().unwrap();
+        let cfg = KnowledgeBaseConfig::default()
+            .with_path(dir.path().join("kb.db").to_string_lossy())
+            .with_dimensions(128)
+            .without_learning();
+        let kb = KnowledgeBase::with_config(cfg).await.unwrap();
+
+        kb.add_entry(KnowledgeEntry::new(
+            "semantic search",
+            "Vector embeddings capture conceptual similarity and paraphrase recall.",
+        ))
+        .await
+        .unwrap();
+        kb.add_entry(KnowledgeEntry::new(
+            "reciprocal rank fusion",
+            "RRF combines BM25 lexical ranks with vector semantic ranks.",
+        ))
+        .await
+        .unwrap();
+        kb.add_entry(KnowledgeEntry::new(
+            "storage backend",
+            "Persistence keeps knowledge entries durable across restarts.",
+        ))
+        .await
+        .unwrap();
+
+        let results = kb
+            .search("RRF", SearchOptions::new(3).hybrid(0.3).without_learning())
+            .await
+            .unwrap();
+
+        assert_eq!(
+            results.first().map(|result| result.entry.title.as_str()),
+            Some("reciprocal rank fusion")
+        );
+        assert!(results.first().is_some_and(|result| result.score > 0.0));
     }
 
     #[tokio::test]

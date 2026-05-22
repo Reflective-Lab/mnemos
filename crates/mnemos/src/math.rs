@@ -1,4 +1,4 @@
-/// Math utilities shared across mnemos modules.
+//! Math utilities shared across mnemos modules.
 
 /// Compute cosine similarity between two vectors.
 ///
@@ -48,8 +48,8 @@ mod tests {
     fn test_cosine_similarity_zero_vector() {
         let a = vec![1.0f32, 0.0, 0.0];
         let z = vec![0.0f32, 0.0, 0.0];
-        assert_eq!(cosine_similarity(&a, &z), 0.0);
-        assert_eq!(cosine_similarity(&z, &a), 0.0);
+        assert!((cosine_similarity(&a, &z) - 0.0).abs() < f32::EPSILON);
+        assert!((cosine_similarity(&z, &a) - 0.0).abs() < f32::EPSILON);
     }
 
     /// Test: cosine_similarity returns 0.0 for mismatched lengths.
@@ -57,12 +57,12 @@ mod tests {
     fn test_cosine_similarity_length_mismatch() {
         let a = vec![1.0f32, 0.0];
         let b = vec![1.0f32, 0.0, 0.0];
-        assert_eq!(cosine_similarity(&a, &b), 0.0);
+        assert!((cosine_similarity(&a, &b) - 0.0).abs() < f32::EPSILON);
     }
 
     /// Test: cosine_similarity returns 0.0 for empty slices.
     #[test]
     fn test_cosine_similarity_empty() {
-        assert_eq!(cosine_similarity(&[], &[]), 0.0);
+        assert!((cosine_similarity(&[], &[]) - 0.0).abs() < f32::EPSILON);
     }
 }

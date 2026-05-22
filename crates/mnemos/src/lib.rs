@@ -7,7 +7,8 @@
 //! - **Vector Storage**: High-performance HNSW-based vector indexing
 //! - **Self-Learning**: Adaptive query understanding using GNN-inspired learning
 //! - **Knowledge Graph**: Semantic relationships between knowledge entries
-//! - **Hybrid Search**: Combine vector similarity with metadata filtering
+//! - **Hybrid Search**: Combine vector similarity with BM25 lexical recall using
+//!   Reciprocal Rank Fusion
 //! - **gRPC Interface**: High-performance RPC for service integration
 //! - **MCP Server**: Model Context Protocol for Claude Desktop
 //! - **Suggestor Adapters**: Knowledge retrieval and persistence inside the
@@ -30,6 +31,12 @@
 //!
 //!     // Search with learning
 //!     let results = kb.search_simple("memory management in rust", 5).await?;
+//!
+//!     // Search with hybrid vector + BM25 rank fusion
+//!     let _hybrid = kb.search(
+//!         "BM25 and RRF",
+//!         mnemos::SearchOptions::new(5).hybrid(0.3),
+//!     ).await?;
 //!
 //!     Ok(())
 //! }

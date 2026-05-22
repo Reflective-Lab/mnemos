@@ -29,7 +29,7 @@ feedback while Converge still decides what becomes fact.
 ## What Mnemos Owns
 
 - `KnowledgeBase`, entries, search options, and search results.
-- Local storage and vector-style retrieval.
+- Local storage and hybrid vector + BM25 lexical retrieval.
 - Embedding support, including OpenAI embeddings.
 - Markdown and rich-media ingestion.
 - Agentic memory: causal, temporal, reflexion, skill, session, online, and
@@ -76,6 +76,22 @@ kb.add_entry(KnowledgeEntry::new(
 
 let results = kb.search_simple("memory safety", 5).await?;
 ```
+
+Hybrid retrieval is available when exact terms matter as much as semantic
+similarity:
+
+```rust
+use mnemos::{KnowledgeBase, SearchOptions};
+
+let kb = KnowledgeBase::open("./knowledge.db").await?;
+let results = kb
+    .search("BM25 RRF acronym recall", SearchOptions::new(5).hybrid(0.3))
+    .await?;
+```
+
+The hybrid path ranks vector similarity and BM25 separately, then merges both
+rankings with Reciprocal Rank Fusion. RRF uses `1 / (60 + rank)` with 1-based
+ranks, so Mnemos does not compare raw BM25 scores with vector similarity scores.
 
 ## Feature Flags
 
