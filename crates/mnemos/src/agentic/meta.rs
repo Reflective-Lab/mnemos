@@ -462,7 +462,6 @@ impl FewShotLearner {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

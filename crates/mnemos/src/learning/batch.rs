@@ -732,7 +732,6 @@ impl BatchJob for RelationshipMinerJob {
     }
 }
 
-
 /// Scheduler for batch jobs.
 pub struct BatchScheduler {
     /// Available jobs.
