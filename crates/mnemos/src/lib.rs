@@ -107,6 +107,7 @@ pub use crate::agentic::{
     // Online/continual learning
     OnlineLearner,
     ParameterSnapshot,
+    PriorConsultationPolicy,
     // Reflexion (self-critique)
     ReflexionEpisode,
     ReflexionMemory,

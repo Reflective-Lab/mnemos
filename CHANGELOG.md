@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Hybrid retrieval now combines vector ranks with BM25 lexical ranks using
   Reciprocal Rank Fusion when `SearchOptions::hybrid(...)` or the CLI
   `search --hybrid` flag is enabled.
+- `PriorConsultationPolicy` under `mnemos::agentic`, re-exported at the crate
+  root, so host runtimes can declare whether relevant prior episodes are
+  required, advisory, or explicitly ignored.
 
 ### Fixed
 
