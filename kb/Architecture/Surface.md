@@ -14,6 +14,8 @@ whose Rust library name is `mnemos`.
 - `ProvenanceSource` and `MNEMOS_PROVENANCE` for typed proposal provenance
   before crossing into `converge-pack::ProposedFact`.
 - `mnemos.suggestor.execute` tracing spans on knowledge suggestor execution.
+- `PriorConsultationPolicy` for host runtimes that need to declare whether
+  relevant prior episodes are required, advisory, or ignored.
 
 ## Contract dependencies
 

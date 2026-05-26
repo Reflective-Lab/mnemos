@@ -17,6 +17,7 @@
 mod causal;
 mod meta;
 mod online;
+mod policy;
 mod reflexion;
 mod sessions;
 mod skills;
@@ -25,6 +26,7 @@ mod temporal;
 pub use causal::{CausalEdge, CausalMemory, CausalNode, Hyperedge};
 pub use meta::{FewShotLearner, LearningStrategy, MetaLearner, TaskFeatures};
 pub use online::{DriftDetector, Experience, ExperienceWindow, OnlineLearner, ParameterSnapshot};
+pub use policy::PriorConsultationPolicy;
 pub use reflexion::{Critique, CritiqueType, ReflexionEpisode, ReflexionMemory};
 pub use sessions::{LearningSession, Reward, SessionTurn};
 pub use skills::{Skill, SkillLibrary, SkillPattern};
