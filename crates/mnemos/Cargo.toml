@@ -24,6 +24,7 @@ tokio-stream.workspace = true
 
 # gRPC / Protobuf
 tonic.workspace = true
+tonic-prost.workspace = true
 prost.workspace = true
 prost-types.workspace = true
 
@@ -64,7 +65,7 @@ regex.workspace = true
 clap = { workspace = true, optional = true }
 
 [build-dependencies]
-tonic-build.workspace = true
+tonic-prost-build.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
