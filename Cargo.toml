@@ -21,7 +21,7 @@ tokio-stream = { version = "0.1", features = ["net", "sync"] }
 tonic = { version = "0.12", features = ["tls"] }
 tonic-build = "0.12"
 prost = "0.13"
-prost-types = "0.13"
+prost-types = "0.14"
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
