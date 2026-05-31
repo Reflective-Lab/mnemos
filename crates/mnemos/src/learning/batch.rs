@@ -882,7 +882,7 @@ impl BatchScheduler {
         self.running.store(true, Ordering::SeqCst);
 
         tokio::spawn(async move {
-            let mut check_interval = interval(std::time::Duration::from_secs(60));
+            let mut check_interval = interval(std::time::Duration::from_mins(1));
 
             while self.running.load(Ordering::SeqCst) {
                 tokio::select! {

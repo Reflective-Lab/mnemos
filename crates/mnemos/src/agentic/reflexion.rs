@@ -272,7 +272,7 @@ impl ReflexionMemory {
     /// Get recent failures.
     pub fn recent_failures(&self, limit: usize) -> Vec<&ReflexionEpisode> {
         let mut failures: Vec<_> = self.episodes.iter().filter(|e| !e.succeeded).collect();
-        failures.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        failures.sort_by_key(|f| std::cmp::Reverse(f.timestamp));
         failures.into_iter().take(limit).collect()
     }
 

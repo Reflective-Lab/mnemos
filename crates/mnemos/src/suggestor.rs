@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use converge_pack::{
-    AgentEffect, Context, ContextFact, ContextKey, ExecutionIdentity, FactPayload,
+    AgentEffect, Context, ContextFact, ContextKey, ExecutionIdentity, FactPayload, Provenance,
     ProvenanceSource, Suggestor, TextPayload,
 };
 use serde::{Deserialize, Serialize};
@@ -107,8 +107,8 @@ impl Suggestor for KnowledgeRetrievalSuggestor {
         ctx.has(ContextKey::Seeds) && !ctx.has(ContextKey::Hypotheses)
     }
 
-    fn provenance(&self) -> &'static str {
-        MNEMOS_PROVENANCE.as_str()
+    fn provenance(&self) -> Provenance {
+        Provenance::from(MNEMOS_PROVENANCE.as_str())
     }
 
     async fn execute(&self, ctx: &dyn Context) -> AgentEffect {
@@ -188,8 +188,8 @@ impl Suggestor for KnowledgeStoreSuggestor {
                 .any(|f| f.id().starts_with("stored-"))
     }
 
-    fn provenance(&self) -> &'static str {
-        MNEMOS_PROVENANCE.as_str()
+    fn provenance(&self) -> Provenance {
+        Provenance::from(MNEMOS_PROVENANCE.as_str())
     }
 
     async fn execute(&self, ctx: &dyn Context) -> AgentEffect {

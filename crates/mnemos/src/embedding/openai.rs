@@ -202,7 +202,7 @@ impl EmbeddingCache {
         Self {
             entries: HashMap::with_capacity(capacity),
             capacity,
-            ttl: Duration::from_secs(3600), // 1 hour TTL
+            ttl: Duration::from_hours(1), // 1 hour TTL
         }
     }
 

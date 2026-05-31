@@ -280,7 +280,7 @@ impl SkillLibrary {
     /// Get most used skills.
     pub fn most_used(&self, limit: usize) -> Vec<&Skill> {
         let mut skills: Vec<_> = self.skills.iter().collect();
-        skills.sort_by(|a, b| b.usage_count.cmp(&a.usage_count));
+        skills.sort_by_key(|s| std::cmp::Reverse(s.usage_count));
         skills.into_iter().take(limit).collect()
     }
 

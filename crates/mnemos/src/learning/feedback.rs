@@ -253,7 +253,7 @@ pub struct FeedbackConfig {
 impl Default for FeedbackConfig {
     fn default() -> Self {
         Self {
-            session_timeout: Duration::from_secs(30 * 60), // 30 minutes
+            session_timeout: Duration::from_mins(30),
             max_buffer_size: 10_000,
             min_dwell_ms: 500, // Half second minimum
             compute_co_access: true,
