@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Checkout Reflective sibling dependencies
+        run: bash scripts/ci/checkout-reflective-siblings.sh
       - name: Install protoc
         run: |
           sudo apt-get update
@@ -33,6 +35,8 @@ jobs:
     needs: bench-compile
     steps:
       - uses: actions/checkout@v6
+      - name: Checkout Reflective sibling dependencies
+        run: bash scripts/ci/checkout-reflective-siblings.sh
       - name: Install protoc
         run: |
           sudo apt-get update
@@ -67,6 +71,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Checkout Reflective sibling dependencies
+        run: bash scripts/ci/checkout-reflective-siblings.sh
       - name: Install protoc
         run: |
           sudo apt-get update
@@ -87,6 +93,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Checkout Reflective sibling dependencies
+        run: bash scripts/ci/checkout-reflective-siblings.sh
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
@@ -105,4 +113,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Checkout Reflective sibling dependencies
+        run: bash scripts/ci/checkout-reflective-siblings.sh
       - uses: EmbarkStudios/cargo-deny-action@v2

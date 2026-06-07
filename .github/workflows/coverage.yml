@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Checkout Reflective sibling dependencies
+        run: bash scripts/ci/checkout-reflective-siblings.sh
       - name: Install protoc
         run: |
           sudo apt-get update
