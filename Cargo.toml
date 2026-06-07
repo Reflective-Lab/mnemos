@@ -5,7 +5,7 @@ members = ["crates/mnemos"]
 [workspace.package]
 version = "1.2.3"
 edition = "2024"
-rust-version = "1.94.0"
+rust-version = "1.96.0"
 license = "MIT"
 repository = "https://github.com/Reflective-Lab/mnemos-knowledge"
 

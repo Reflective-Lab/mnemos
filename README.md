@@ -7,7 +7,7 @@
 [![Crates.io](https://img.shields.io/crates/v/converge-mnemos-knowledge.svg)](https://crates.io/crates/converge-mnemos-knowledge)
 [![docs.rs](https://docs.rs/converge-mnemos-knowledge/badge.svg)](https://docs.rs/converge-mnemos-knowledge)
 [![dependency status](https://deps.rs/repo/github/Reflective-Lab/mnemos-knowledge/status.svg)](https://deps.rs/repo/github/Reflective-Lab/mnemos-knowledge)
-![MSRV](https://img.shields.io/badge/MSRV-1.94.0-blue)
+![MSRV](https://img.shields.io/badge/MSRV-1.96.0-blue)
 <img alt="gitleaks badge" src="https://img.shields.io/badge/protected%20by-gitleaks-blue">
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 

@@ -20,7 +20,7 @@ A clear and concise description of what you expected to happen.
 
 ## Environment
 - OS: [e.g., macOS, Linux]
-- Rust version: [e.g., 1.94.0]
+- Rust version: [e.g., 1.96.0]
 - mnemos version: [e.g., 1.0.0]
 - Features enabled: [e.g., "cli,grpc"]
 - Embedding backend: [e.g., hash, OpenAI]
