@@ -11,6 +11,10 @@ Knowledge base for the `mnemos` Converge extension.
 
 **Meta:** [[INDEX]] — entity catalog | [[LOG]] — mutation log
 
+## Positioning
+
+- [[Positioning]] — elevator pitch, LLM synergy, full capability catalog
+
 ## Architecture
 
 - [[Architecture/Retrieval]] — vector, BM25, and RRF recall behavior

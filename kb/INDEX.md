@@ -5,6 +5,10 @@ source: llm
 
 Major entities in the `mnemos` knowledge base.
 
+## Positioning
+
+- [Positioning](Positioning.md) — elevator pitch, LLM synergy, full capability catalog
+
 ## Architecture
 
 - [Retrieval](Architecture/Retrieval.md) — vector, BM25, and RRF recall behavior
