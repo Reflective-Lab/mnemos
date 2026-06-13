@@ -138,7 +138,8 @@ impl Suggestor for KnowledgeRetrievalSuggestor {
                         };
                         proposals.push(
                             MNEMOS_PROVENANCE
-                                .proposed_fact(
+                                .proposed_fact_for(
+                                    seed,
                                     ContextKey::Hypotheses,
                                     format!("kb-{}-{}", seed.id(), i),
                                     payload,
@@ -206,7 +207,8 @@ impl Suggestor for KnowledgeStoreSuggestor {
                     .with_tags(vec!["auto-stored", "formation-output"]);
 
                 if self.kb.add_entry(entry).await.is_ok() {
-                    proposals.push(MNEMOS_PROVENANCE.proposed_fact(
+                    proposals.push(MNEMOS_PROVENANCE.proposed_fact_for(
+                        eval,
                         ContextKey::Seeds,
                         format!("stored-{}", eval.id()),
                         TextPayload::new(format!(
