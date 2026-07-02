@@ -15,6 +15,7 @@ source: mixed
 - [x] Tag `v1.2.2` and `cargo publish -p converge-mnemos-knowledge`.
 
 ## Current: v1.0.0 — Converge 3.8.1 Knowledge Foundation
+**Epic:** E1
 
 **Target:** 2026-05 | **Tracks:** Converge 3.8.1
 
